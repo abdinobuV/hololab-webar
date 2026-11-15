@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>HoloLab WebAR — Interactive Hologram & AI Hand-Tracking Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- MediaPipe Hands CDN for AI Hand Tracking AR -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <!-- Live Webcam Video Layer (Hidden in 3D Studio Mode, Visible in AR Mode) -->
+  <video id="webcam-video" autoplay playsinline muted></video>
+
+  <!-- Hand Skeleton / HUD Overlay Canvas -->
+  <canvas id="hud-canvas"></canvas>
+
+  <!-- Three.js 3D Hologram Canvas -->
+  <div id="canvas-container"></div>
+
+  <!-- Sci-Fi Scanline & Corner Frame Overlay -->
+  <div class="hud-frame" id="hud-frame">
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+    <div class="reticle" id="center-reticle"></div>
+  </div>
+
+  <!-- Top Navigation & Status Bar -->
+  <header class="top-bar">
+    <div class="brand">
+      <div class="brand-icon">
+        <span class="pulse-dot"></span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+          <polyline points="2 17 12 22 22 17"></polyline>
+          <polyline points="2 12 12 17 22 12"></polyline>
+        </svg>
+      </div>
+      <div>
+        <h1>HOLOLAB <span class="badge">WebAR AI</span></h1>
+        <p class="subtitle" id="status-text">Mode: 3D Hologram Studio (Siap Aktifkan Kamera AR)</p>
+      </div>
+    </div>
+
+    <div class="mode-switches">
+      <button id="btn-toggle-ar" class="btn-primary glow-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+          <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+        <span>Aktifkan Kamera AR</span>
+      </button>
+
+      <button id="btn-toggle-hand" class="btn-secondary" title="Kontrol Hologram dengan Tangan (AI Hand Tracking)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path>
+          <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path>
+          <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path>
+          <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path>
+        </svg>
+        <span>AI Hand Control: OFF</span>
+      </button>
+
+      <button id="btn-snapshot" class="btn-icon" title="Ambil Foto AR Snapshot">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+      </button>
+
+      <button id="btn-help" class="btn-icon" title="Panduan & Cara Kerja WebAR">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Left Info Card: Active Hologram Telemetry -->
+  <aside class="info-panel" id="info-panel">
+    <div class="panel-header">
+      <span class="tag" id="model-category">ASTRONOMI & SAINS</span>
+      <span class="telemetry-id" id="model-code">SYS // 01</span>
+    </div>
+    <h2 id="model-title">Tata Surya Interaktif</h2>
+    <p id="model-desc">
+      Simulasi orbit heliosentris dengan Matahari bercahaya, Bumi & Bulan, Mars, serta cincin Saturnus. Putar, perbesar, atau bedah orbit secara real-time di ruang nyata Anda.
+    </p>
+
+    <div class="stats-grid" id="model-stats">
+      <div class="stat-box">
+        <span class="stat-label">OBJEK AKTIF</span>
+        <span class="stat-val" id="stat-1">8 Planet & Sabuk</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">SKALA AR</span>
+        <span class="stat-val" id="stat-scale">1.00x</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">MODE RENDER</span>
+        <span class="stat-val" id="stat-render">Solid Hologram</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">GESTUR TANGAN</span>
+        <span class="stat-val" id="stat-gesture">Standby</span>
+      </div>
+    </div>
+
+    <!-- Interactive Controls inside Panel -->
+    <div class="control-group">
+      <div class="slider-row">
+        <label for="scale-slider">Ukuran Hologram</label>
+        <input type="range" id="scale-slider" min="0.4" max="2.5" step="0.05" value="1.0" />
+      </div>
+      <div class="slider-row">
+        <label for="speed-slider">Kecepatan Animasi</label>
+        <input type="range" id="speed-slider" min="0" max="3" step="0.1" value="1.0" />
+      </div>
+    </div>
+
+    <div class="action-buttons">
+      <button id="btn-explode" class="chip-btn">
+        <span>💥 Explode / Expand</span>
+      </button>
+      <button id="btn-wireframe" class="chip-btn">
+        <span>🕸️ Mode X-Ray</span>
+      </button>
+      <button id="btn-reset" class="chip-btn">
+        <span>🎯 Reset Posisi</span>
+      </button>
+      <button id="btn-sound" class="chip-btn active">
+        <span>🔊 SFX: ON</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Gesture Feedback Toast -->
+  <div class="gesture-toast hidden" id="gesture-toast">
+    <div class="gesture-icon" id="gesture-icon">🖐️</div>
+    <div>
+      <strong id="gesture-name">Tangan Terdeteksi</strong>
+      <p id="gesture-hint">Cubit (Jempol + Telunjuk) untuk memperbesar, gerakkan tangan untuk memutar</p>
+    </div>
+  </div>
+
+  <!-- Bottom Dock: 3D Hologram Selector -->
+  <nav class="bottom-dock">
+    <button class="dock-item active" data-model="solar">
+      <span class="dock-emoji">🪐</span>
+      <span class="dock-label">Tata Surya</span>
+    </button>
+    <button class="dock-item" data-model="reactor">
+      <span class="dock-emoji">⚡</span>
+      <span class="dock-label">Arc Reactor</span>
+    </button>
+    <button class="dock-item" data-model="dna">
+      <span class="dock-emoji">🧬</span>
+      <span class="dock-label">Heliks DNA</span>
+    </button>
+    <button class="dock-item" data-model="drone">
+      <span class="dock-emoji">🛸</span>
+      <span class="dock-label">Cyber Drone</span>
+    </button>
+    <button class="dock-item" data-model="tesseract">
+      <span class="dock-emoji">💎</span>
+      <span class="dock-label">Tesseract 4D</span>
+    </button>
+  </nav>
+
+  <!-- Guide & Architecture Modal -->
+  <div class="modal-backdrop hidden" id="help-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🚀 Cara Menggunakan HoloLab WebAR</h3>
+        <button id="btn-close-help" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="guide-step">
+          <span class="step-num">1</span>
+          <div>
+            <h4>Mode Kamera AR (Augmented Reality)</h4>
+            <p>Klik tombol <strong>"Aktifkan Kamera AR"</strong> di kanan atas. Objek 3D akan langsung melayang di dunia nyata melalui kamera laptop atau smartphone Anda.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <span class="step-num">2</span>
+          <div>
+            <h4>Kontrol Tangan AI (Iron Man / Tony Stark Style)</h4>
+            <p>Klik <strong>"AI Hand Control"</strong> lalu angkat satu tangan ke depan kamera:</p>
+            <ul>
+              <li><strong>Gerakkan Tangan:</strong> Memutar & menggeser posisi hologram di udara.</li>
+              <li><strong>Cubit (Jempol + Telunjuk):</strong> Mengatur skala ukuran objek 3D secara real-time.</li>
+              <li><strong>Kepalkan Tangan (Fist):</strong> Memicu mode <em>Explode / Bedah Komponen</em>.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="guide-step">
+          <span class="step-num">3</span>
+          <div>
+            <h4>Kontrol Mouse / Layar Sentuh</h4>
+            <p>Kapan saja Anda bisa <strong>klik & tahan (drag)</strong> untuk memutar objek 3D, <strong>scroll / cubit layar</strong> untuk zoom, atau klik di mana saja pada layar kamera untuk memindahkan jangkar hologram.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
