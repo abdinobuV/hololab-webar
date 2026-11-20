@@ -2,505 +2,255 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <!-- Viewport dioptimalkan agar responsif di HP Android (portrait & landscape) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>WebAR Edukasi TJKT Kelas X — Perangkat Jaringan & Topologi Star</title>
+  <title>NetGO WebAR — Jelajah & Tangkap Perangkat Jaringan TJKT Kelas X</title>
 
   <!--
     ===========================================================================
-    LIBRARY WEBAR (A-FRAME + AR.JS)
-    Menggunakan Marker-based AR sehingga ringan & berjalan di mayoritas HP
-    Android melalui browser Chrome/Firefox tanpa mewajibkan ARCore.
+    LIBRARY 3D RINGAN (THREE.JS + GLTFLOADER)
+    Berjalan lancar di hampir semua HP Android (tanpa ARCore & tanpa cetak
+    marker kertas) dengan menggabungkan Live Camera + 3D Interaktif ala Pokemon GO.
     ===========================================================================
   -->
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
-  <!-- Stylesheet UI Materi, Navigasi, dan Kontrol Responsif -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- =========================================================================
-       1. SCENE AR (A-FRAME + AR.JS)
-       ========================================================================= -->
-  <a-scene
-    id="ar-scene"
-    embedded
-    arjs="sourceType: webcam; debugUIEnabled: false;"
-    vr-mode-ui="enabled: false"
-    renderer="logarithmicDepthBuffer: true; antialias: true; colorManagement: true;"
-  >
-    <!-- Pencahayaan yang cukup agar model 3D terlihat jelas di berbagai ruangan -->
-    <a-light type="ambient" color="#ffffff" intensity="0.95"></a-light>
-    <a-light type="directional" color="#ffffff" intensity="0.85" position="1.5 4 2.5"></a-light>
-    <a-light type="directional" color="#bae6fd" intensity="0.45" position="-2 2 -1.5"></a-light>
+  <!-- 1. LAYER KAMERA LIVE (BELAKANG / DEPAN) -->
+  <video id="camera-feed" autoplay playsinline muted></video>
 
-    <!-- =======================================================================
-         MARKER 1: PERANGKAT KERAS JARINGAN
-         Default menggunakan preset="hiro".
+  <!-- 2. LAYER CANVAS 3D THREE.JS (TRANSPARAN DI ATAS KAMERA) -->
+  <div id="ar-canvas-container"></div>
 
-         [CARA MENGGANTI KE CUSTOM MARKER .PATT]:
-         Hapus preset="hiro", lalu ganti dengan:
-         type="pattern" url="assets/markers/perangkat.patt"
-         ======================================================================= -->
-    <a-marker id="marker-perangkat" preset="hiro" emitevents="true">
-
-      <!--
-        [SLOT MODEL 3D .GLB / .GLTF]:
-        Jika Anda sudah meletakkan file .glb di folder assets/models/ dan
-        mengaktifkannya di script.js, entity ini akan menampilkan model .glb.
-        Jika file belum ada, fallback primitif A-Frame di bawah akan otomatis aktif.
-      -->
-      <a-entity
-        id="custom-glb-wrapper"
-        position="0 0.25 0"
-        scale="0.5 0.5 0.5"
-        visible="false"
-        animation="property: rotation; to: 0 360 0; loop: true; dur: 14000; easing: linear;"
-      ></a-entity>
-
-      <!-- FALLBACK PRIMITIF GEOMETRIS A-FRAME (Tetap tampil jelas tanpa file .glb) -->
-      <a-entity id="fallback-perangkat-wrapper" position="0 0.05 0">
-
-        <!-- 1A. MODEL PRIMITIF: ROUTER (Dengan Port WAN & Port LAN) -->
-        <a-entity id="model-router" position="0 0 0" visible="true">
-          <!-- Alas Penanda -->
-          <a-cylinder position="0 0.01 0" radius="0.72" height="0.02" color="#0f172a" opacity="0.65"></a-cylinder>
-
-          <!-- Bodi Utama Router -->
-          <a-box position="0 0.16 0" width="0.95" height="0.22" depth="0.62" color="#1e293b" metalness="0.3" roughness="0.5"></a-box>
-          <!-- Garis Aksen Atas Router -->
-          <a-box position="0 0.275 0" width="0.9" height="0.015" depth="0.56" color="#38bdf8"></a-box>
-
-          <!-- 2 Antena Wi-Fi Router -->
-          <a-cylinder position="-0.36 0.52 -0.24" radius="0.028" height="0.62" color="#334155" rotation="0 0 8"></a-cylinder>
-          <a-sphere position="-0.40 0.82 -0.24" radius="0.032" color="#38bdf8"></a-sphere>
-          <a-cylinder position="0.36 0.52 -0.24" radius="0.028" height="0.62" color="#334155" rotation="0 0 -8"></a-cylinder>
-          <a-sphere position="0.40 0.82 -0.24" radius="0.032" color="#38bdf8"></a-sphere>
-
-          <!-- Lampu LED Indikator Depan -->
-          <a-sphere position="-0.32 0.18 0.315" radius="0.024" color="#22c55e"
-            animation="property: scale; to: 1.3 1.3 1.3; dir: alternate; dur: 600; loop: true;"></a-sphere>
-          <a-sphere position="-0.22 0.18 0.315" radius="0.024" color="#38bdf8"></a-sphere>
-          <a-sphere position="-0.12 0.18 0.315" radius="0.024" color="#facc15"
-            animation="property: scale; to: 1.25 1.25 1.25; dir: alternate; dur: 450; loop: true;"></a-sphere>
-
-          <!-- PORT WAN (Biru - Menghubungkan ke Jaringan Luar / ISP) -->
-          <a-box position="-0.30 0.12 0.315" width="0.11" height="0.08" depth="0.03" color="#2563eb"></a-box>
-          <a-text value="WAN" position="-0.30 0.04 0.34" align="center" color="#60a5fa" scale="0.28 0.28 0.28"></a-text>
-
-          <!-- PORT LAN 1-4 (Kuning - Menghubungkan ke Jaringan Lokal) -->
-          <a-box position="-0.06 0.12 0.315" width="0.09" height="0.08" depth="0.03" color="#eab308"></a-box>
-          <a-box position="0.06 0.12 0.315" width="0.09" height="0.08" depth="0.03" color="#eab308"></a-box>
-          <a-box position="0.18 0.12 0.315" width="0.09" height="0.08" depth="0.03" color="#eab308"></a-box>
-          <a-box position="0.30 0.12 0.315" width="0.09" height="0.08" depth="0.03" color="#eab308"></a-box>
-          <a-text value="LAN 1 - 4" position="0.12 0.04 0.34" align="center" color="#fde047" scale="0.28 0.28 0.28"></a-text>
-
-          <!-- Label Judul 3D -->
-          <a-text
-            value="ROUTER\nPengatur Jalur Paket IP (WAN & LAN)"
-            position="0 1.05 0"
-            align="center"
-            color="#38bdf8"
-            width="2.6"
-            side="double"
-          ></a-text>
-        </a-entity>
-
-        <!-- 1B. MODEL PRIMITIF: SWITCH (Penghubung LAN via MAC Address) -->
-        <a-entity id="model-switch" position="0 0 0" visible="false">
-          <a-cylinder position="0 0.01 0" radius="0.78" height="0.02" color="#0f172a" opacity="0.65"></a-cylinder>
-
-          <!-- Bodi Rackmount Switch -->
-          <a-box position="0 0.15 0" width="1.25" height="0.20" depth="0.58" color="#0f172a" metalness="0.4" roughness="0.4"></a-box>
-          <a-box position="0 0.255 0" width="1.2" height="0.015" depth="0.52" color="#10b981"></a-box>
-
-          <!-- Deretan 8 Port Ethernet RJ-45 -->
-          <a-box position="-0.48 0.13 0.295" width="0.09" height="0.08" depth="0.03" color="#334155"></a-box>
-          <a-box position="-0.35 0.13 0.295" width="0.09" height="0.08" depth="0.03" color="#334155"></a-box>
-          <a-box position="-0.22 0.13 0.295" width="0.09" height="0.08" depth="0.03" color="#334155"></a-box>
-          <a-box position="-0.09 0.13 0.295" width="0.09" height="0.08" depth="0.03" color="#334155"></a-box>
-          <a-box position="0.09 0.13 0.295" width="0.09" height="0.08" depth="0.03" color="#334155"></a-box>
-          <a-box position="0.22 0.13 0.295" width="0.09" height="0.08" depth="0.03" color="#334155"></a-box>
-          <a-box position="0.35 0.13 0.295" width="0.09" height="0.08" depth="0.03" color="#334155"></a-box>
-          <a-box position="0.48 0.13 0.295" width="0.09" height="0.08" depth="0.03" color="#334155"></a-box>
-
-          <!-- LED Status Port Aktif -->
-          <a-sphere position="-0.48 0.21 0.295" radius="0.018" color="#22c55e"
-            animation="property: material.opacity; from: 1; to: 0.2; dir: alternate; dur: 500; loop: true;"></a-sphere>
-          <a-sphere position="-0.35 0.21 0.295" radius="0.018" color="#22c55e"></a-sphere>
-          <a-sphere position="-0.09 0.21 0.295" radius="0.018" color="#22c55e"
-            animation="property: material.opacity; from: 1; to: 0.2; dir: alternate; dur: 350; loop: true;"></a-sphere>
-          <a-sphere position="0.22 0.21 0.295" radius="0.018" color="#22c55e"></a-sphere>
-          <a-sphere position="0.48 0.21 0.295" radius="0.018" color="#38bdf8"
-            animation="property: material.opacity; from: 1; to: 0.2; dir: alternate; dur: 700; loop: true;"></a-sphere>
-
-          <!-- Label Judul 3D -->
-          <a-text
-            value="SWITCH (8-Port LAN)\nMeneruskan Data via MAC Address"
-            position="0 0.72 0"
-            align="center"
-            color="#34d399"
-            width="2.6"
-            side="double"
-          ></a-text>
-        </a-entity>
-
-        <!-- 1C. MODEL PRIMITIF: KABEL UTP & KONEKTOR RJ-45 -->
-        <a-entity id="model-utp" position="0 0 0" visible="false">
-          <a-cylinder position="0 0.01 0" radius="0.72" height="0.02" color="#0f172a" opacity="0.65"></a-cylinder>
-
-          <!-- Jaket Kabel UTP (Biru) -->
-          <a-cylinder position="-0.45 0.26 0" radius="0.09" height="0.85" rotation="0 0 90" color="#2563eb"></a-cylinder>
-
-          <!-- 4 Pasang Kabel Tembaga Terpilin (Oranye, Hijau, Biru, Cokelat) -->
-          <a-cylinder position="0.06 0.30 0.04" radius="0.016" height="0.26" rotation="0 0 90" color="#f97316"></a-cylinder>
-          <a-cylinder position="0.06 0.28 -0.04" radius="0.016" height="0.26" rotation="0 0 90" color="#22c55e"></a-cylinder>
-          <a-cylinder position="0.06 0.24 0.04" radius="0.016" height="0.26" rotation="0 0 90" color="#38bdf8"></a-cylinder>
-          <a-cylinder position="0.06 0.22 -0.04" radius="0.016" height="0.26" rotation="0 0 90" color="#a16207"></a-cylinder>
-
-          <!-- Badan Konektor Modular RJ-45 Transparan -->
-          <a-box position="0.34 0.26 0" width="0.36" height="0.20" depth="0.24" color="#e2e8f0" opacity="0.55" transparent="true"></a-box>
-          <!-- Klip Pengunci RJ-45 -->
-          <a-box position="0.28 0.38 0" width="0.22" height="0.04" depth="0.10" rotation="0 0 18" color="#cbd5e1" opacity="0.75"></a-box>
-          <!-- Pin Tembaga Emas (8 Pin) -->
-          <a-box position="0.50 0.29 0" width="0.06" height="0.03" depth="0.20" color="#facc15"></a-box>
-
-          <!-- Label Judul 3D -->
-          <a-text
-            value="KABEL UTP & KONEKTOR RJ-45\nMedia Transmisi Tembaga Terpilin"
-            position="0 0.78 0"
-            align="center"
-            color="#fbbf24"
-            width="2.6"
-            side="double"
-          ></a-text>
-        </a-entity>
-
-      </a-entity>
-    </a-marker>
-
-    <!-- =======================================================================
-         MARKER 2: TOPOLOGI STAR (BINTANG)
-         Default menggunakan preset="kanji".
-
-         [CARA MENGGANTI KE CUSTOM MARKER .PATT]:
-         Hapus preset="kanji", lalu ganti dengan:
-         type="pattern" url="assets/markers/topologi-star.patt"
-         ======================================================================= -->
-    <a-marker id="marker-topologi" preset="kanji" emitevents="true">
-
-      <!-- Alas Panduan Lingkaran Jaringan -->
-      <a-ring position="0 0.01 0" rotation="-90 0 0" radius-inner="1.02" radius-outer="1.06" color="#38bdf8" opacity="0.45"></a-ring>
-
-      <!-- Label Status Topologi Dinamis -->
-      <a-text
-        id="star-status-text"
-        value="TOPOLOGI STAR: NORMAL\nSemua Klien Terhubung via Switch Pusat"
-        position="0 0.92 0"
-        align="center"
-        color="#38bdf8"
-        width="2.8"
-        side="double"
-      ></a-text>
-
-      <!-- NODE PUSAT: SWITCH -->
-      <a-entity id="star-switch" position="0 0.16 0">
-        <a-box id="star-switch-box" width="0.44" height="0.18" depth="0.34" color="#0284c7" metalness="0.3"></a-box>
-        <a-cylinder id="star-switch-led" position="0 0.11 0" radius="0.06" height="0.03" color="#22c55e"
-          animation="property: scale; to: 1.25 1 1.25; dir: alternate; dur: 550; loop: true;"></a-cylinder>
-        <a-text value="SWITCH\n(PUSAT)" position="0 0.34 0" align="center" color="#ffffff" width="1.6" side="double"></a-text>
-      </a-entity>
-
-      <!-- ==================== 4 NODE KLIEN ==================== -->
-
-      <!-- KLIEN 1 (Utara): PC-1 -->
-      <a-entity id="node-pc1" position="0 0.14 -1.05">
-        <a-box position="0 0.12 0" width="0.34" height="0.22" depth="0.05" color="#334155"></a-box>
-        <a-box id="screen-pc1" position="0 0.12 0.03" width="0.29" height="0.17" depth="0.01" color="#38bdf8"></a-box>
-        <a-box position="0 -0.02 0" width="0.14" height="0.06" depth="0.12" color="#64748b"></a-box>
-        <a-text value="PC-1" position="0 0.35 0" align="center" color="#e2e8f0" width="1.6" side="double"></a-text>
-      </a-entity>
-
-      <!-- KLIEN 2 (Timur): PC-2 -->
-      <a-entity id="node-pc2" position="1.05 0.14 0" rotation="0 -90 0">
-        <a-box position="0 0.12 0" width="0.34" height="0.22" depth="0.05" color="#334155"></a-box>
-        <a-box id="screen-pc2" position="0 0.12 0.03" width="0.29" height="0.17" depth="0.01" color="#38bdf8"></a-box>
-        <a-box position="0 -0.02 0" width="0.14" height="0.06" depth="0.12" color="#64748b"></a-box>
-        <a-text value="PC-2" position="0 0.35 0" align="center" color="#e2e8f0" width="1.6" side="double"></a-text>
-      </a-entity>
-
-      <!-- KLIEN 3 (Selatan): LAPTOP -->
-      <a-entity id="node-laptop" position="0 0.10 1.05" rotation="0 180 0">
-        <a-box position="0 0 0" width="0.34" height="0.03" depth="0.24" color="#475569"></a-box>
-        <a-box position="0 0.11 -0.11" rotation="-18 0 0" width="0.34" height="0.21" depth="0.025" color="#334155"></a-box>
-        <a-box id="screen-laptop" position="0 0.11 -0.095" rotation="-18 0 0" width="0.29" height="0.16" depth="0.01" color="#a855f7"></a-box>
-        <a-text value="LAPTOP" position="0 0.36 0" align="center" color="#e2e8f0" width="1.6" side="double"></a-text>
-      </a-entity>
-
-      <!-- KLIEN 4 (Barat): PRINTER -->
-      <a-entity id="node-printer" position="-1.05 0.12 0" rotation="0 90 0">
-        <a-box position="0 0.04 0" width="0.34" height="0.16" depth="0.26" color="#cbd5e1"></a-box>
-        <a-box position="0 0.15 -0.06" width="0.22" height="0.10" depth="0.02" color="#ffffff"></a-box>
-        <a-box id="screen-printer" position="0.10 0.09 0.135" width="0.07" height="0.04" depth="0.01" color="#22c55e"></a-box>
-        <a-text value="PRINTER" position="0 0.34 0" align="center" color="#e2e8f0" width="1.6" side="double"></a-text>
-      </a-entity>
-
-      <!-- ==================== 4 KABEL UTP PENGHUBUNG ==================== -->
-      <!-- Kabel ke PC-1 (Utara) -->
-      <a-cylinder id="cable-pc1" position="0 0.10 -0.525" radius="0.02" height="0.95" rotation="90 0 0" color="#38bdf8"></a-cylinder>
-      <!-- Kabel ke PC-2 (Timur) -->
-      <a-cylinder id="cable-pc2" position="0.525 0.10 0" radius="0.02" height="0.95" rotation="0 0 90" color="#38bdf8"></a-cylinder>
-      <!-- Kabel ke Laptop (Selatan) -->
-      <a-cylinder id="cable-laptop" position="0 0.10 0.525" radius="0.02" height="0.95" rotation="90 0 0" color="#38bdf8"></a-cylinder>
-      <!-- Kabel ke Printer (Barat) -->
-      <a-cylinder id="cable-printer" position="-0.525 0.10 0" radius="0.02" height="0.95" rotation="0 0 90" color="#38bdf8"></a-cylinder>
-
-      <!-- ==================== ANIMASI PAKET DATA BERGERAK ==================== -->
-      <!-- Paket Data PC-1 <-> Switch -->
-      <a-sphere
-        id="packet-pc1"
-        radius="0.055"
-        color="#facc15"
-        position="0 0.16 -0.95"
-        animation="property: position; from: 0 0.16 -0.95; to: 0 0.16 0; dir: alternate; dur: 1500; loop: true; easing: easeInOutSine;"
-      ></a-sphere>
-
-      <!-- Paket Data Switch <-> PC-2 -->
-      <a-sphere
-        id="packet-pc2"
-        radius="0.055"
-        color="#34d399"
-        position="0 0.16 0"
-        animation="property: position; from: 0 0.16 0; to: 0.95 0.16 0; dir: alternate; dur: 1500; delay: 300; loop: true; easing: easeInOutSine;"
-      ></a-sphere>
-
-      <!-- Paket Data Laptop <-> Switch -->
-      <a-sphere
-        id="packet-laptop"
-        radius="0.055"
-        color="#c084fc"
-        position="0 0.16 0.95"
-        animation="property: position; from: 0 0.16 0.95; to: 0 0.16 0; dir: alternate; dur: 1700; delay: 150; loop: true; easing: easeInOutSine;"
-      ></a-sphere>
-
-      <!-- Paket Data Switch <-> Printer -->
-      <a-sphere
-        id="packet-printer"
-        radius="0.055"
-        color="#38bdf8"
-        position="0 0.16 0"
-        animation="property: position; from: 0 0.16 0; to: -0.95 0.16 0; dir: alternate; dur: 1700; delay: 500; loop: true; easing: easeInOutSine;"
-      ></a-sphere>
-
-    </a-marker>
-
-    <!-- Kamera AR -->
-    <a-entity camera></a-entity>
-  </a-scene>
+  <!-- 3. EFEK KILATAN SAAT NET-BALL MENGENAI OBJEK -->
+  <div id="flash-overlay"></div>
 
   <!-- =========================================================================
-       2. ANTARMUKA PENGGUNA (UI OVERLAY: NAVIGASI, INSTRUKSI, & PANEL MATERI)
+       4. LAYAR AWAL (SPLASH / START SCREEN)
+       Diperlukan oleh browser HP Android/iOS agar izin kamera & sensor gyro
+       langsung aktif ketika siswa menekan tombol mulai.
        ========================================================================= -->
+  <div id="start-screen" class="start-screen">
+    <div class="start-card">
+      <div class="start-badge">GAME EDUKASI WebAR • KELAS X TJKT / TKJ</div>
+      <div class="start-logo">📡</div>
+      <h1>NetGO <span>WebAR</span></h1>
+      <p class="start-desc">
+        Aktifkan kamera HP-mu untuk menemukan objek <strong>Perangkat Keras Jaringan</strong> &amp; <strong>Topologi Star</strong> di ruang nyata, sentuh objeknya untuk berinteraksi, dan lempar <strong>Net-Ball</strong> untuk menangkapnya!
+      </p>
 
-  <!-- Top Bar Navigasi & Status Marker -->
-  <header class="top-hud">
-    <div class="brand-chip">
-      <span class="status-dot" id="marker-dot"></span>
-      <div>
-        <div class="brand-title">WebAR TJKT Kelas X</div>
-        <div class="marker-status" id="marker-status-text">Arahkan kamera ke marker Hiro / Kanji</div>
+      <div class="start-steps">
+        <div class="step-item"><span>📷</span> Kamera aktif → objek 3D langsung muncul tanpa marker</div>
+        <div class="step-item"><span>👆</span> Sentuh (tap) objek 3D untuk melihat interaksi &amp; simulasi</div>
+        <div class="step-item"><span>⚡</span> Lempar Net-Ball &amp; jawab kuis untuk melengkapi Net-Dex (0/4)</div>
+      </div>
+
+      <button id="btn-start-ar" class="btn-start-primary" type="button">
+        🚀 Aktifkan Kamera &amp; Mulai Bermain
+      </button>
+      <button id="btn-start-preview" class="btn-start-secondary" type="button">
+        🎮 Main Mode Studio 3D (Tanpa Kamera)
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       5. HUD ATAS (RADAR ALA POKEMON GO, KOLEKSI NET-DEX, & TOMBOL MATERI)
+       ========================================================================= -->
+  <header id="hud-top" class="hud-top hidden">
+    <!-- Kiri: Mini Radar & Progress Tangkap -->
+    <div class="hud-left">
+      <div class="mini-radar" id="mini-radar" title="Radar Sinyal Jaringan">
+        <div class="radar-sweep"></div>
+        <div class="radar-center"></div>
+        <div class="radar-blip blip-1" id="radar-blip"></div>
+      </div>
+      <div class="player-status">
+        <div class="dex-badge">
+          🏆 Net-Dex: <strong id="caught-count">0</strong>/4
+        </div>
+        <div class="xp-text" id="xp-display">XP: 0 • Jelajah AR</div>
       </div>
     </div>
 
-    <div class="hud-actions">
-      <button id="btn-show-markers" class="btn-hud btn-outline" type="button">
-        🎯 Marker
+    <!-- Kanan: Tombol Aksi Cepat -->
+    <div class="hud-right">
+      <button id="btn-switch-cam" class="hud-icon-btn" type="button" title="Ganti Kamera Depan/Belakang">
+        🔄
       </button>
-      <button id="btn-toggle-materi" class="btn-hud btn-primary" type="button" aria-expanded="false">
-        📘 Materi / Info
+      <button id="btn-recenter" class="hud-icon-btn" type="button" title="Panggil Objek ke Depan Kamera">
+        🎯
+      </button>
+      <button id="btn-open-materi" class="hud-materi-btn" type="button">
+        📘 Materi
       </button>
     </div>
   </header>
 
-  <!-- Banner Instruksi Singkat di Awal (Bisa ditutup siswa) -->
-  <div class="onboarding-banner" id="onboarding-banner">
-    <div class="onboarding-content">
-      <strong>Panduan Cepat:</strong>
-      <span>
-        1. Arahkan kamera ke marker <b>Hiro</b> (Perangkat Jaringan) atau <b>Kanji</b> (Topologi Star).
-        2. Buka tombol <b>Materi / Info</b> di kanan atas untuk membaca penjelasan.
-      </span>
+  <!-- =========================================================================
+       6. KARTU PENJELASAN MATERI LIVE DI LAYAR KAMERA AR
+       Langsung tampil saat kamera aktif & berubah otomatis sesuai objek 3D
+       yang muncul atau bagian 3D yang disentuh siswa!
+       ========================================================================= -->
+  <div id="interaction-toast" class="interaction-toast hidden">
+    <div class="toast-header">
+      <div class="toast-header-left">
+        <span class="toast-tag" id="toast-tag">TOPIK 1 • PERANGKAT JARINGAN</span>
+        <span class="toast-status" id="toast-caught-badge">LIAR</span>
+      </div>
+      <button id="btn-toggle-live-info" class="btn-mini-toggle" type="button" title="Lipat / Perluas Penjelasan">▴</button>
     </div>
-    <button id="btn-close-onboarding" class="btn-dismiss" type="button" aria-label="Tutup panduan">&times;</button>
-  </div>
-
-  <!-- Toolbar Kontrol Bawah (Untuk memilih perangkat di Marker 1 & Simulasi Topologi Star di Marker 2) -->
-  <footer class="bottom-controls">
-    <!-- Kontrol Marker 1: Perangkat Keras -->
-    <div class="control-group" id="controls-perangkat">
-      <span class="control-label">Marker 1 (Hiro) — Perangkat:</span>
-      <div class="pill-row">
-        <button class="pill-btn active" data-device="router" type="button">Router</button>
-        <button class="pill-btn" data-device="switch" type="button">Switch</button>
-        <button class="pill-btn" data-device="utp" type="button">UTP & RJ-45</button>
+    <h3 id="toast-title">Router Jaringan</h3>
+    <div id="toast-content-wrap" class="toast-content-wrap">
+      <p id="toast-body">
+        Router menghubungkan dua atau lebih jaringan yang berbeda dan mengatur jalur pengiriman paket data (IP). Perhatikan Port WAN (Biru) ke ISP dan Port LAN (Kuning) ke jaringan lokal.
+      </p>
+      <div class="toast-tip" id="toast-tip">
+        👆 Tap bagian objek 3D di layar untuk interaksi, atau tekan <strong>TANGKAP</strong>!
       </div>
     </div>
+  </div>
 
-    <!-- Kontrol Marker 2: Simulasi Topologi Star -->
-    <div class="control-group" id="controls-topologi">
-      <span class="control-label">Marker 2 (Kanji) — Simulasi Star:</span>
-      <div class="pill-row">
-        <button class="pill-btn active" data-star="normal" type="button">Normal</button>
-        <button class="pill-btn" data-star="cable-cut" type="button">1 Kabel Putus</button>
-        <button class="pill-btn" data-star="switch-down" type="button">Switch Rusak</button>
+  <!-- =========================================================================
+       7. HUD BAWAH (PILIH OBJEK DI RADAR, TOMBOL INTERAKSI & LEMPAR NET-BALL)
+       ========================================================================= -->
+  <footer id="hud-bottom" class="hud-bottom hidden">
+    <!-- Tombol Interaksi Spesial sesuai Objek yang Sedang Muncul -->
+    <div class="special-actions" id="special-actions">
+      <!-- Diisi dinamis oleh script.js (misal: Uji WAN/LAN, Explode UTP, Simulasi Kabel Putus / Switch Rusak) -->
+    </div>
+
+    <!-- Bar Utama: Selector Objek + Tombol Lempar Net-Ball (Tengah seperti Pokeball) -->
+    <div class="action-dock">
+      <div class="target-selector">
+        <button class="target-chip active" data-target="router" type="button">
+          <span class="chip-check" id="check-router"></span>
+          📡 Router
+        </button>
+        <button class="target-chip" data-target="switch" type="button">
+          <span class="chip-check" id="check-switch"></span>
+          🔀 Switch
+        </button>
+      </div>
+
+      <!-- Tombol Utama Lempar Net-Ball (Ala Pokéball) -->
+      <button id="btn-throw-ball" class="netball-btn" type="button" title="Lempar Net-Ball untuk Menangkap Objek!">
+        <span class="netball-top"></span>
+        <span class="netball-core"></span>
+        <span class="netball-label">TANGKAP</span>
+      </button>
+
+      <div class="target-selector">
+        <button class="target-chip" data-target="utp" type="button">
+          <span class="chip-check" id="check-utp"></span>
+          🔌 UTP
+        </button>
+        <button class="target-chip" data-target="star" type="button">
+          <span class="chip-check" id="check-star"></span>
+          ⭐ Star
+        </button>
       </div>
     </div>
   </footer>
 
   <!-- =========================================================================
-       3. PANEL MATERI / INFO EDUKASI (BUKA-TUTUP UNTUK SISWA KELAS X TJKT/TKJ)
+       8. MODAL KUIS TANGKAP (MUNCUL SAAT NET-BALL MENGENAI OBJEK!)
        ========================================================================= -->
-  <aside class="materi-drawer" id="materi-drawer" aria-hidden="true">
+  <div id="quiz-modal" class="modal-backdrop hidden">
+    <div class="quiz-card">
+      <div class="quiz-header">
+        <span class="quiz-badge" id="quiz-badge">⚡ TANTANGAN TANGKAP</span>
+        <button id="btn-close-quiz" class="btn-close" type="button">&times;</button>
+      </div>
+      <h3 id="quiz-title">Objek Terkunci di Dalam Net-Ball!</h3>
+      <p class="quiz-question" id="quiz-question">Pertanyaan kuis muncul di sini...</p>
+      <div class="quiz-options" id="quiz-options"></div>
+      <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       9. PANEL MATERI / INFO EDUKASI (KELAS X TJKT / TKJ — BUKA-TUTUP)
+       ========================================================================= -->
+  <aside id="materi-drawer" class="materi-drawer" aria-hidden="true">
     <div class="drawer-header">
       <div>
-        <span class="drawer-badge">KELAS X TJKT / TKJ</span>
-        <h2>Materi Dasar Jaringan</h2>
+        <span class="drawer-badge">MATERI KELAS X TJKT / TKJ</span>
+        <h2>Dasar Jaringan &amp; Topologi</h2>
       </div>
-      <button id="btn-close-materi" class="btn-close-drawer" type="button" aria-label="Tutup Panel Materi">&times;</button>
+      <button id="btn-close-materi" class="btn-close" type="button">&times;</button>
     </div>
 
-    <!-- Tab Navigasi Topik -->
-    <div class="topic-tabs" role="tablist">
-      <button class="tab-btn active" data-topic="topik1" type="button" role="tab">
+    <div class="topic-tabs">
+      <button class="tab-btn active" data-topic="topik1" type="button">
         Topik 1: Perangkat Keras
       </button>
-      <button class="tab-btn" data-topic="topik2" type="button" role="tab">
+      <button class="tab-btn" data-topic="topik2" type="button">
         Topik 2: Topologi Star
       </button>
     </div>
 
-    <!-- Konten Materi -->
     <div class="drawer-body">
-
-      <!-- TOPIK 1: PENGENALAN PERANGKAT KERAS JARINGAN -->
+      <!-- TOPIK 1 -->
       <section class="topic-content active" id="topic-topik1">
-        <p class="topic-intro">
-          Arahkan kamera ke <strong>Marker Hiro</strong> lalu gunakan tombol pilihan di bawah layar untuk mengamati visualisasi 3D masing-masing perangkat.
-        </p>
-
         <article class="materi-card">
-          <div class="card-tag tag-blue">1. ROUTER</div>
+          <span class="tag tag-blue">1. ROUTER</span>
           <h3>Pengatur Jalur Paket Data (IP)</h3>
           <p>
-            <strong>Router</strong> berfungsi menghubungkan <strong>dua atau lebih jaringan yang berbeda</strong> dan mengatur jalur (<em>routing</em>) pengiriman paket data berdasarkan alamat <strong>IP (Internet Protocol)</strong>.
+            <strong>Router</strong> berfungsi menghubungkan <strong>dua atau lebih jaringan yang berbeda</strong> dan mengatur jalur pengiriman paket data berdasarkan alamat <strong>IP</strong>.
           </p>
           <div class="highlight-box">
-            <strong>Perbedaan Port WAN dan Port LAN:</strong>
+            <strong>Perbedaan Port WAN &amp; Port LAN:</strong>
             <ul>
-              <li><span class="dot-wan"></span> <strong>Port WAN (Wide Area Network):</strong> Umumnya berwarna <em>biru</em> (hanya 1 port). Digunakan untuk menghubungkan router ke jaringan luar / modem ISP (Internet).</li>
-              <li><span class="dot-lan"></span> <strong>Port LAN (Local Area Network):</strong> Umumnya berwarna <em>kuning</em> (biasanya 4 port). Digunakan untuk menghubungkan perangkat di dalam jaringan lokal (Switch, PC, Access Point).</li>
+              <li><span class="dot-wan"></span> <strong>Port WAN (Biru):</strong> Menghubungkan router ke jaringan luar / modem ISP (Internet).</li>
+              <li><span class="dot-lan"></span> <strong>Port LAN (Kuning):</strong> Menghubungkan perangkat di dalam jaringan lokal (Switch, PC, Laptop).</li>
             </ul>
           </div>
         </article>
 
         <article class="materi-card">
-          <div class="card-tag tag-green">2. SWITCH</div>
-          <h3>Penghubung Perangkat Jaringan Lokal (LAN)</h3>
+          <span class="tag tag-green">2. SWITCH</span>
+          <h3>Penghubung Jaringan Lokal (LAN)</h3>
           <p>
-            <strong>Switch</strong> berfungsi sebagai penghubung berbagai perangkat (PC, laptop, printer, server) di dalam <strong>satu jaringan lokal (LAN)</strong>.
-          </p>
-          <p>
-            Berbeda dengan Hub lama yang menyebarkan data ke semua port, Switch meneruskan data ke perangkat tujuan secara <strong>spesifik</strong> dengan mengenali <strong>MAC Address</strong> (alamat fisik kartu jaringan) setiap perangkat.
+            <strong>Switch</strong> menghubungkan berbagai perangkat dalam <strong>satu jaringan lokal (LAN)</strong> dan meneruskan data ke perangkat tujuan secara <strong>spesifik menggunakan MAC Address</strong>.
           </p>
         </article>
 
         <article class="materi-card">
-          <div class="card-tag tag-amber">3. KABEL UTP & KONEKTOR RJ-45</div>
-          <h3>Media Transmisi Kabel Tembaga Terpilin</h3>
+          <span class="tag tag-amber">3. KABEL UTP &amp; KONEKTOR RJ-45</span>
+          <h3>Media Transmisi Tembaga Terpilin</h3>
           <p>
-            <strong>Kabel UTP (Unshielded Twisted Pair)</strong> adalah media transmisi kabel tembaga yang terdiri dari 4 pasang (8 utas) kabel berpasangan terpilin untuk mengurangi gangguan interferensi elektromagnetik.
-          </p>
-          <p>
-            Ujung kabel UTP dipasang <strong>Konektor RJ-45</strong> (8 pin tembaga) agar dapat dihubungkan ke port Ethernet pada Router, Switch, maupun komputer dalam jaringan lokal.
+            <strong>Kabel UTP (Unshielded Twisted Pair)</strong> adalah media transmisi kabel tembaga 4 pasang (8 kabel) berpasangan terpilin untuk menghubungkan perangkat jaringan lokal, dengan ujung <strong>Konektor RJ-45</strong> (8 pin emas).
           </p>
         </article>
       </section>
 
-      <!-- TOPIK 2: TOPOLOGI STAR (BINTANG) -->
+      <!-- TOPIK 2 -->
       <section class="topic-content" id="topic-topik2">
-        <p class="topic-intro">
-          Arahkan kamera ke <strong>Marker Kanji</strong> untuk melihat simulasi 3D aliran paket data pada Topologi Star. Coba tombol simulasi <em>Normal</em>, <em>1 Kabel Putus</em>, dan <em>Switch Rusak</em>!
-        </p>
-
         <article class="materi-card">
-          <div class="card-tag tag-purple">KONSEP TOPOLOGI STAR</div>
-          <h3>Jaringan Terpusat Berbentuk Bintang</h3>
+          <span class="tag tag-purple">KONSEP TOPOLOGI STAR (BINTANG)</span>
+          <h3>Jaringan Terpusat di Satu Perangkat</h3>
           <p>
-            Pada <strong>Topologi Star (Bintang)</strong>, seluruh perangkat klien (seperti PC, laptop, dan printer) terhubung secara terpusat ke <strong>satu perangkat penghubung utama</strong> yang berada di tengah — biasanya berupa <strong>Switch</strong> atau <strong>Hub</strong>.
-          </p>
-          <p>
-            Setiap paket data yang dikirim dari satu komputer akan melewati Switch pusat terlebih dahulu sebelum diteruskan ke perangkat tujuan.
+            Seluruh perangkat klien (<strong>PC, Laptop, Printer</strong>) terhubung secara terpusat ke <strong>satu perangkat penghubung utama</strong> (biasanya <strong>Switch</strong> atau Hub).
           </p>
         </article>
 
         <article class="materi-card">
-          <div class="card-tag tag-blue">KARAKTERISTIK UTAMA</div>
-          <h3>Kelebihan & Kelemahan Topologi Star</h3>
+          <span class="tag tag-blue">KARAKTERISTIK TOPOLOGI STAR</span>
+          <h3>Kelebihan &amp; Kelemahan</h3>
           <ul class="char-list">
-            <li>
-              <strong>✅ Mudah Diidentifikasi & Dikelola:</strong> Karena setiap perangkat punya jalur kabel masing-masing ke Switch pusat, pengecekan kerusakan (<em>troubleshooting</em>) dan penambahan perangkat baru sangat mudah dilakukan.
-            </li>
-            <li>
-              <strong>✅ Isolasi Gangguan Klien:</strong> Jika <strong>satu kabel klien putus</strong> (misal kabel ke PC-1 putus), hanya PC-1 yang terputus. Klien lainnya (PC-2, Laptop, Printer) <strong>tetap dapat berkomunikasi normal</strong>.
-            </li>
-            <li>
-              <strong>⚠️ Ketergantungan pada Pusat:</strong> Jika <strong>perangkat pusat (Switch) bermasalah</strong> atau mati, maka <strong>seluruh jaringan akan terganggu</strong> dan tidak bisa saling berkomunikasi (<em>Single Point of Failure</em>).
-            </li>
+            <li><strong>✅ Mudah Dikelola &amp; Diidentifikasi:</strong> Jalur setiap klien terpisah sehingga mudah dicek saat terjadi gangguan.</li>
+            <li><strong>✅ Isolasi Kabel Putus:</strong> Jika <strong>satu kabel klien putus</strong>, klien lain <strong>tetap dapat berkomunikasi</strong> normal.</li>
+            <li><strong>⚠️ Ketergantungan pada Pusat:</strong> Jika <strong>perangkat pusat (Switch) bermasalah</strong>, maka <strong>seluruh jaringan terganggu</strong>.</li>
           </ul>
         </article>
       </section>
-
     </div>
   </aside>
 
-  <!-- =========================================================================
-       4. MODAL TAMPILAN MARKER (HIRO & KANJI) AGAR MUDAH DIUJI / DICETAK
-       ========================================================================= -->
-  <div class="modal-overlay hidden" id="marker-modal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>🎯 Daftar Marker WebAR</h3>
-        <button id="btn-close-marker-modal" class="btn-close-drawer" type="button">&times;</button>
-      </div>
-      <p class="modal-desc">
-        Cetak atau tampilkan marker di bawah pada layar lain, lalu arahkan kamera HP Anda ke marker tersebut.
-      </p>
-      <div class="marker-grid">
-        <div class="marker-item">
-          <img
-            src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
-            alt="Marker Hiro - Perangkat Keras Jaringan"
-            loading="lazy"
-          />
-          <strong>Marker 1: HIRO</strong>
-          <span>Perangkat Keras Jaringan</span>
-        </div>
-        <div class="marker-item">
-          <img
-            src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/kanji.png"
-            alt="Marker Kanji - Topologi Star"
-            loading="lazy"
-          />
-          <strong>Marker 2: KANJI</strong>
-          <span>Topologi Star (Bintang)</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Logika Interaksi UI, Deteksi Marker AR.js, Loader Model GLB, & Simulasi -->
   <script src="script.js"></script>
 </body>
 </html>

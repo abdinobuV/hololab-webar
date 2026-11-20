@@ -1,46 +1,33 @@
-# 🌐 WebAR Edukasi TJKT / TKJ Kelas X — Perangkat Keras Jaringan & Topologi Star
+# 📡 NetGO WebAR — Game Edukasi Jaringan TJKT Kelas X (Ala Pokémon GO AR)
 
-Aplikasi edukasi berbasis **WebAR (Marker-based AR)** menggunakan **HTML, CSS, JavaScript, A-Frame, dan AR.js**. Dirancang ringan agar berjalan lancar di sebagian besar smartphone Android melalui browser (Chrome/Firefox/Edge) **tanpa memerlukan dukungan ARCore**.
+Aplikasi game edukasi berbasis **WebAR** untuk siswa **Kelas X TJKT / TKJ** yang menggabungkan pengalaman kamera AR ala **Pokémon GO** (tanpa perlu mencetak kertas marker & tanpa mewajibkan ARCore di HP Android!) dengan interaksi objek 3D langsung dan kartu penjelasan materi *live* di atas layar kamera.
+
+---
+
+## ✨ Fitur Utama
+1. **Aktifkan Kamera → Objek 3D Langsung Muncul di Dunia Nyata**:
+   - Menggunakan kamera belakang HP (`environment`, bisa dibalik ke kamera depan `🔄`) dan sensor gerak (*gyroscope*) ringan agar objek 3D terasa melayang di sekitar ruangan.
+2. **Penjelasan Materi Live Saat Kamera Aktif**:
+   - Begitu kamera aktif, **Kartu Penjelasan Materi Live** langsung tampil di layar kamera (bisa dilipat/diperluas) dan otomatis berubah sesuai objek atau bagian 3D yang disentuh siswa!
+   - Dilengkapi tombol **📘 Materi** (buka-tutup) untuk membaca materi lengkap **Topik 1 (Perangkat Keras Jaringan)** & **Topik 2 (Topologi Star)**.
+3. **Interaksi Langsung (Tap Objek 3D)**:
+   - **Router**: Tap **Port WAN (Biru)** dan **Port LAN (Kuning)** untuk melihat animasi paket IP & perbedaan fungsinya.
+   - **Switch 8-Port**: Tap bodi/port Switch untuk menguji pengiriman paket data spesifik berbasis **MAC Address**.
+   - **Kabel UTP & Konektor RJ-45**: Tap kabel untuk memicu mode **Bedah / Explode 3D** guna melihat 4 pasang kabel pilin warna dan 8 pin tembaga emas.
+   - **Topologi Star**: Tap kabel **PC-1** (simulasi **1 kabel putus** → klien lain tetap jalan) atau tap **Switch Pusat** (simulasi **Switch rusak** → seluruh jaringan terhenti).
+4. **Mekanik Lempar Net-Ball (Ala Pokéball) & Net-Dex (0/4)**:
+   - Tekan tombol **TANGKAP (Net-Ball)** di tengah bawah untuk melempar bola energi 3D dengan lintasan parabola & efek partikel ke arah objek!
+   - Jawab 1 pertanyaan kuis singkat untuk menangkap objek ke koleksi **Net-Dex (4/4)** dan mengumpulkan **XP**.
 
 ---
 
 ## 📁 Struktur Folder
 ```text
-├── index.html               # Halaman utama Scene WebAR (A-Frame + AR.js) & UI Panel Materi
-├── style.css                # Styling UI responsif (Portrait & Landscape)
-├── script.js                # Kontrol materi, loader .glb otomatis, deteksi marker, & simulasi Star
-├── vercel.json              # Konfigurasi static site untuk Vercel
+├── index.html          # Halaman utama NetGO WebAR, HUD Radar, Kartu Materi Live & Kuis
+├── style.css           # Styling responsif HP Portrait & Landscape
+├── script.js           # Engine 3D Three.js, Raycasting Tap, Lempar Net-Ball, & Auto-Loader .glb
+├── vercel.json         # Konfigurasi static site Vercel
 └── assets/
-    ├── models/              # Tempat menyimpan file model 3D (.glb / .gltf)
-    │   └── README.md
-    └── markers/             # Tempat menyimpan file custom pattern marker (.patt)
-        └── README.md
+    ├── models/         # Simpan file .glb kustom (router.glb, switch.glb, utp-rj45.glb)
+    └── markers/        # Folder pendukung marker
 ```
-
----
-
-## 📚 Materi Edukasi yang Dimuat (Kelas X TJKT/TKJ)
-1. **Topik 1: Pengenalan Perangkat Keras Jaringan** *(Marker 1: Hiro)*
-   - **Router**: Menghubungkan dua atau lebih jaringan yang berbeda & mengatur jalur paket data (IP), dilengkapi visualisasi perbedaan **Port WAN** (biru) dan **Port LAN** (kuning).
-   - **Switch**: Penghubung perangkat dalam satu jaringan lokal (LAN) yang meneruskan data secara spesifik berdasarkan **MAC Address**.
-   - **Kabel UTP & Konektor RJ-45**: Media transmisi kabel tembaga berpasangan terpilin (*Unshielded Twisted Pair*) dengan ujung konektor 8-pin RJ-45.
-2. **Topik 2: Topologi Star (Bintang)** *(Marker 2: Kanji)*
-   - **Konsep**: Seluruh perangkat klien (PC-1, PC-2, Laptop, Printer) terhubung secara terpusat ke satu Switch di tengah dengan animasi paket data bergerak.
-   - **Karakteristik & Simulasi Interaktif**:
-     - **Normal**: Semua klien berkomunikasi lancar melalui Switch pusat.
-     - **1 Kabel Putus**: Hanya klien bersangkutan yang mati, klien lain tetap dapat berkomunikasi.
-     - **Switch Rusak**: Seluruh jaringan terganggu (*Single Point of Failure*).
-
----
-
-## 🛠️ Cara Modifikasi
-- **Mengganti Model 3D (`.glb`/`.gltf`)**: Simpan file `router.glb`, `switch.glb`, atau `utp-rj45.glb` ke `assets/models/`. Aplikasi otomatis mendeteksi file `.glb` dan mengganti objek primitif fallback.
-- **Mengganti Custom Marker (`.patt`)**: Simpan file `.patt` ke `assets/markers/`, lalu ubah `preset="hiro"` atau `preset="kanji"` di `index.html` menjadi `type="pattern" url="assets/markers/nama-marker.patt"`.
-
----
-
-## 🚀 Cara Deploy ke GitHub Pages
-1. Push repositori ini ke GitHub.
-2. Buka tab **Settings** → **Pages** pada repositori GitHub Anda.
-3. Pada bagian **Build and deployment** → pilih **Source: Deploy from a branch**, lalu pilih branch `main` dan folder `/ (root)`.
-4. Simpan dan tunggu 1–2 menit; link `https://<username>.github.io/<repo>/` (HTTPS) siap dibuka langsung di HP Android!
