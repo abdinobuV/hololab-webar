@@ -1,0 +1,574 @@
+/* ============================================================================
+   STYLE.CSS — UI Edukasi WebAR TJKT Kelas X (A-Frame + AR.js)
+   Dirancang ringan, kontras tinggi di atas kamera, serta responsif untuk
+   layar HP mode Portrait maupun Landscape.
+   ============================================================================ */
+
+:root {
+  --bg-glass: rgba(15, 23, 42, 0.84);
+  --bg-card: rgba(30, 41, 59, 0.92);
+  --border-glass: rgba(148, 163, 184, 0.28);
+  --primary: #0ea5e9;
+  --primary-dark: #0284c7;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --purple: #a855f7;
+  --text-light: #f8fafc;
+  --text-muted: #cbd5e1;
+  --radius: 14px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-light);
+  background: transparent;
+}
+
+/* Pastikan canvas A-Frame mengisi layar di belakang UI */
+a-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+}
+
+/* ============================================================================
+   1. TOP HUD BAR (STATUS MARKER & TOMBOL MATERI)
+   ============================================================================ */
+.top-hud {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.brand-chip,
+.hud-actions {
+  pointer-events: auto;
+}
+
+.brand-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  max-width: 58%;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--warning);
+  flex-shrink: 0;
+  box-shadow: 0 0 8px var(--warning);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.status-dot.detected {
+  background: var(--success);
+  box-shadow: 0 0 10px var(--success);
+}
+
+.brand-title {
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.marker-status {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-hud {
+  border: none;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease, background 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-hud:active {
+  transform: scale(0.96);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
+}
+
+.btn-outline {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  backdrop-filter: blur(10px);
+}
+
+/* ============================================================================
+   2. BANNER INSTRUKSI SINGKAT DI AWAL
+   ============================================================================ */
+.onboarding-banner {
+  position: fixed;
+  top: calc(max(10px, env(safe-area-inset-top)) + 60px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(94%, 520px);
+  z-index: 19;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(2, 132, 199, 0.9);
+  border: 1px solid rgba(186, 230, 253, 0.45);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.onboarding-banner.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -10px);
+}
+
+.onboarding-content strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.82rem;
+}
+
+.btn-dismiss {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   3. TOOLBAR KONTROL BAWAH (SWITCHER PERANGKAT & SIMULASI STAR)
+   ============================================================================ */
+.bottom-controls {
+  position: fixed;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 760px;
+  margin: 0 auto;
+  pointer-events: none;
+}
+
+.control-group {
+  pointer-events: auto;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.control-group.highlighted {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.45);
+}
+
+.control-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.2px;
+}
+
+.pill-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pill-btn {
+  flex: 1;
+  min-width: 82px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(30, 41, 59, 0.8);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pill-btn.active {
+  background: var(--primary);
+  border-color: #7dd3fc;
+  color: #ffffff;
+}
+
+/* ============================================================================
+   4. PANEL MATERI / INFO (DRAWER SLIDE-OVER)
+   ============================================================================ */
+.materi-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(100vw, 420px);
+  z-index: 40;
+  background: rgba(15, 23, 42, 0.96);
+  border-left: 1px solid var(--border-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.45);
+}
+
+.materi-drawer.open {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  padding: 16px 18px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.drawer-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: #38bdf8;
+  margin-bottom: 2px;
+}
+
+.drawer-header h2 {
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.btn-close-drawer {
+  background: rgba(148, 163, 184, 0.16);
+  border: none;
+  color: var(--text-light);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.topic-tabs {
+  display: flex;
+  padding: 10px 16px;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-glass);
+  background: rgba(30, 41, 59, 0.7);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  background: var(--primary);
+  border-color: #7dd3fc;
+  color: #fff;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px 28px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.topic-content {
+  display: none;
+}
+
+.topic-content.active {
+  display: block;
+}
+
+.topic-intro {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #bae6fd;
+  background: rgba(14, 165, 233, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.materi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.card-tag {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  margin-bottom: 8px;
+}
+
+.tag-blue { background: rgba(14, 165, 233, 0.22); color: #7dd3fc; }
+.tag-green { background: rgba(34, 197, 94, 0.22); color: #86efac; }
+.tag-amber { background: rgba(245, 158, 11, 0.22); color: #fcd34d; }
+.tag-purple { background: rgba(168, 85, 247, 0.22); color: #d8b4fe; }
+
+.materi-card h3 {
+  font-size: 0.94rem;
+  margin-bottom: 6px;
+  color: #ffffff;
+}
+
+.materi-card p {
+  font-size: 0.82rem;
+  line-height: 1.58;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.materi-card p:last-child {
+  margin-bottom: 0;
+}
+
+.highlight-box {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  font-size: 0.79rem;
+  line-height: 1.5;
+}
+
+.highlight-box ul,
+.char-list {
+  margin-top: 6px;
+  padding-left: 16px;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.highlight-box li,
+.char-list li {
+  margin-bottom: 6px;
+}
+
+.dot-wan,
+.dot-lan {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.dot-wan { background: #2563eb; }
+.dot-lan { background: #eab308; }
+
+/* ============================================================================
+   5. MODAL DAFTAR MARKER (HIRO & KANJI)
+   ============================================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(2, 6, 23, 0.78);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-overlay.hidden {
+  display: none;
+}
+
+.modal-card {
+  width: min(100%, 480px);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #0f172a;
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.modal-header h3 {
+  font-size: 1rem;
+}
+
+.modal-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  line-height: 1.45;
+}
+
+.marker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.marker-item {
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 12px;
+  padding: 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.marker-item img {
+  width: 100%;
+  max-width: 160px;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+.marker-item strong {
+  font-size: 0.82rem;
+}
+
+.marker-item span {
+  font-size: 0.72rem;
+  color: #475569;
+}
+
+/* ============================================================================
+   6. RESPONSIF KHUSUS MODE LANDSCAPE DI HP (AGAR KAMERA TETAP LUAS)
+   ============================================================================ */
+@media (orientation: landscape) and (max-height: 520px) {
+  .top-hud {
+    top: 6px;
+  }
+
+  .brand-chip {
+    padding: 5px 10px;
+  }
+
+  .btn-hud {
+    padding: 6px 10px;
+    font-size: 0.74rem;
+  }
+
+  .onboarding-banner {
+    top: 52px;
+    padding: 6px 12px;
+    font-size: 0.72rem;
+  }
+
+  .bottom-controls {
+    flex-direction: row;
+    bottom: 6px;
+  }
+
+  .control-group {
+    flex: 1;
+    padding: 6px 8px;
+  }
+
+  .pill-btn {
+    padding: 5px 6px;
+    font-size: 0.7rem;
+    min-width: 64px;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand-title {
+    font-size: 0.78rem;
+  }
+  .btn-hud {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+  }
+}

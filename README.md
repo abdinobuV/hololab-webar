@@ -1,23 +1,46 @@
-# 🪐 HoloLab WebAR — Interactive 3D Hologram & AI Hand-Tracking Studio
+# 🌐 WebAR Edukasi TJKT / TKJ Kelas X — Perangkat Keras Jaringan & Topologi Star
 
-Aplikasi **WebAR (Augmented Reality berbasis Web)** interaktif bergaya *Iron Man / Tony Stark Hologram Lab* yang memadukan **Three.js 3D Engine**, **WebRTC Live Camera**, dan **AI Hand-Tracking (MediaPipe Hands)**.
+Aplikasi edukasi berbasis **WebAR (Marker-based AR)** menggunakan **HTML, CSS, JavaScript, A-Frame, dan AR.js**. Dirancang ringan agar berjalan lancar di sebagian besar smartphone Android melalui browser (Chrome/Firefox/Edge) **tanpa memerlukan dukungan ARCore**.
 
-## ✨ Fitur Utama
-- **Live Camera AR Overlay**: Memproyeksikan hologram 3D transparan langsung di atas kamera laptop/PC atau smartphone Anda.
-- **AI Hand Gesture Control**:
-  - 🖐️ **Gerakkan Tangan**: Memutar & mengarahkan hologram di udara.
-  - 🤏 **Cubit (Jempol + Telunjuk)**: Mengubah skala ukuran objek 3D secara real-time.
-  - ✊ **Kepalkan Tangan (Fist)**: Memicu mode **Explode / Bedah Komponen**.
-- **5 Model Hologram 3D Interaktif**:
-  1. 🪐 **Tata Surya Interaktif** (Matahari, Orbit Planet, Bumi + Bulan, Cincin Saturnus, Sabuk Asteroid)
-  2. ⚡ **Reaktor Arc Mark-X** (Inti Plasma & Koil Akselerator)
-  3. 🧬 **Heliks Ganda DNA** (Molekul Genomik & Pemindai Laser)
-  4. 🛸 **Cyber-Drone Recon V4** (Unit UAV Quad-Rotor & Scanner)
-  5. 💎 **Tesseract 4D Hypercube** (Geometri Hiperdimensi)
-- **AR Snapshot**: Ambil dan unduh foto Anda bersama hologram 3D.
+---
 
-## 🚀 Cara Menjalankan Lokal
-```bash
-node server.js
+## 📁 Struktur Folder
+```text
+├── index.html               # Halaman utama Scene WebAR (A-Frame + AR.js) & UI Panel Materi
+├── style.css                # Styling UI responsif (Portrait & Landscape)
+├── script.js                # Kontrol materi, loader .glb otomatis, deteksi marker, & simulasi Star
+├── vercel.json              # Konfigurasi static site untuk Vercel
+└── assets/
+    ├── models/              # Tempat menyimpan file model 3D (.glb / .gltf)
+    │   └── README.md
+    └── markers/             # Tempat menyimpan file custom pattern marker (.patt)
+        └── README.md
 ```
-Lalu buka `http://localhost:3000` di browser.
+
+---
+
+## 📚 Materi Edukasi yang Dimuat (Kelas X TJKT/TKJ)
+1. **Topik 1: Pengenalan Perangkat Keras Jaringan** *(Marker 1: Hiro)*
+   - **Router**: Menghubungkan dua atau lebih jaringan yang berbeda & mengatur jalur paket data (IP), dilengkapi visualisasi perbedaan **Port WAN** (biru) dan **Port LAN** (kuning).
+   - **Switch**: Penghubung perangkat dalam satu jaringan lokal (LAN) yang meneruskan data secara spesifik berdasarkan **MAC Address**.
+   - **Kabel UTP & Konektor RJ-45**: Media transmisi kabel tembaga berpasangan terpilin (*Unshielded Twisted Pair*) dengan ujung konektor 8-pin RJ-45.
+2. **Topik 2: Topologi Star (Bintang)** *(Marker 2: Kanji)*
+   - **Konsep**: Seluruh perangkat klien (PC-1, PC-2, Laptop, Printer) terhubung secara terpusat ke satu Switch di tengah dengan animasi paket data bergerak.
+   - **Karakteristik & Simulasi Interaktif**:
+     - **Normal**: Semua klien berkomunikasi lancar melalui Switch pusat.
+     - **1 Kabel Putus**: Hanya klien bersangkutan yang mati, klien lain tetap dapat berkomunikasi.
+     - **Switch Rusak**: Seluruh jaringan terganggu (*Single Point of Failure*).
+
+---
+
+## 🛠️ Cara Modifikasi
+- **Mengganti Model 3D (`.glb`/`.gltf`)**: Simpan file `router.glb`, `switch.glb`, atau `utp-rj45.glb` ke `assets/models/`. Aplikasi otomatis mendeteksi file `.glb` dan mengganti objek primitif fallback.
+- **Mengganti Custom Marker (`.patt`)**: Simpan file `.patt` ke `assets/markers/`, lalu ubah `preset="hiro"` atau `preset="kanji"` di `index.html` menjadi `type="pattern" url="assets/markers/nama-marker.patt"`.
+
+---
+
+## 🚀 Cara Deploy ke GitHub Pages
+1. Push repositori ini ke GitHub.
+2. Buka tab **Settings** → **Pages** pada repositori GitHub Anda.
+3. Pada bagian **Build and deployment** → pilih **Source: Deploy from a branch**, lalu pilih branch `main` dan folder `/ (root)`.
+4. Simpan dan tunggu 1–2 menit; link `https://<username>.github.io/<repo>/` (HTTPS) siap dibuka langsung di HP Android!
