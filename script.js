@@ -1941,15 +1941,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderCharacterStrip() {
     characterStripEl.innerHTML = '';
+    let activeBtn = null;
     CHARACTERS.forEach((char) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       const isCaught = state.caughtSet.has(char.id);
-      btn.className = 'strip-chip' + (char.id === state.currentTarget ? ' active' : '') + (isCaught ? ' caught' : '');
+      const isActive = char.id === state.currentTarget;
+      btn.className = 'strip-chip' + (isActive ? ' active' : '') + (isCaught ? ' caught' : '');
       btn.textContent = `${char.emoji} ${char.name}${isCaught ? ' ✅' : ''}`;
       btn.addEventListener('click', () => spawnCharacter(char.id));
       characterStripEl.appendChild(btn);
+      if (isActive) activeBtn = btn;
     });
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
   }
 
   function updateNetDexHUD() {
@@ -2048,7 +2054,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const uncaught = CHARACTERS.filter((c) => !state.caughtSet.has(c.id) && c.id !== state.currentTarget);
     const pool = uncaught.length > 0 ? uncaught : CHARACTERS.filter((c) => c.id !== state.currentTarget);
     const pick = pool[Math.floor(Math.random() * pool.length)];
-    if (pick) spawnCharacter(pick.id);
+    if (pick) {
+      spawnCharacter(pick.id);
+      showSnackbar(`🎲 Sinyal terdeteksi: ${pick.emoji} ${pick.name}!`);
+    }
   });
 
   // ==========================================================================
@@ -2203,27 +2212,42 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // KONTROL ZOOM (TOMBOL + / - , PINCH-TO-ZOOM 2 JARI DI HP, & MOUSE WHEEL)
+  // SNACKBAR FEEDBACK & KONTROL ZOOM (TOMBOL + / - , PINCH 2 JARI, & WHEEL)
   // ==========================================================================
-  function setZoomScale(newScale) {
+  const snackbarEl = document.getElementById('status-snackbar');
+  const drawerBackdrop = document.getElementById('drawer-backdrop');
+  let snackbarTimer = null;
+
+  function showSnackbar(message) {
+    if (!snackbarEl) return;
+    snackbarEl.textContent = message;
+    snackbarEl.classList.remove('hidden');
+    clearTimeout(snackbarTimer);
+    snackbarTimer = setTimeout(() => snackbarEl.classList.add('hidden'), 1800);
+  }
+
+  function setZoomScale(newScale, announce = false) {
     state.targetScale = Math.max(0.4, Math.min(2.4, newScale));
     if (zoomLevelText) {
       zoomLevelText.textContent = `${state.targetScale.toFixed(1)}x`;
     }
+    if (announce) {
+      showSnackbar(`🔍 Ukuran Karakter: ${state.targetScale.toFixed(1)}x`);
+    }
   }
 
   btnZoomIn.addEventListener('click', () => {
-    setZoomScale(state.targetScale + 0.2);
+    setZoomScale(state.targetScale + 0.2, true);
     sfx.tap();
   });
 
   btnZoomOut.addEventListener('click', () => {
-    setZoomScale(state.targetScale - 0.2);
+    setZoomScale(state.targetScale - 0.2, true);
     sfx.tap();
   });
 
   zoomLevelText.addEventListener('click', () => {
-    setZoomScale(1.0);
+    setZoomScale(1.0, true);
     sfx.tap();
   });
 
@@ -2250,8 +2274,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-start-ar').addEventListener('click', () => enterExperience(true));
   document.getElementById('btn-start-preview').addEventListener('click', () => enterExperience(false));
 
-  document.getElementById('btn-switch-cam').addEventListener('click', () => {
-    startCamera(state.facingMode === 'environment' ? 'user' : 'environment');
+  document.getElementById('btn-switch-cam').addEventListener('click', async () => {
+    const nextFacing = state.facingMode === 'environment' ? 'user' : 'environment';
+    await startCamera(nextFacing);
+    showSnackbar(state.facingMode === 'environment' ? '📷 Kamera Belakang Aktif' : '🤳 Kamera Depan Aktif');
     sfx.tap();
   });
 
@@ -2260,6 +2286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.targetRotY = 0.45;
     setZoomScale(1.0);
     state.wobbleTimer = 0.35;
+    showSnackbar('🎯 Posisi & ukuran direset (1.0x)');
     sfx.tap();
   });
 
@@ -2357,15 +2384,37 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.topic-content').forEach((sec) => sec.classList.toggle('active', sec.id === `topic-${topicId}`));
   }
 
+  function setDrawerOpen(open) {
+    materiDrawer.classList.toggle('open', open);
+    materiDrawer.setAttribute('aria-hidden', String(!open));
+    if (drawerBackdrop) drawerBackdrop.classList.toggle('hidden', !open);
+  }
+
   document.getElementById('btn-open-materi').addEventListener('click', () => {
-    materiDrawer.classList.add('open');
-    materiDrawer.setAttribute('aria-hidden', 'false');
+    setDrawerOpen(true);
     sfx.tap();
   });
 
-  document.getElementById('btn-close-materi').addEventListener('click', () => {
-    materiDrawer.classList.remove('open');
-    materiDrawer.setAttribute('aria-hidden', 'true');
+  document.getElementById('btn-close-materi').addEventListener('click', () => setDrawerOpen(false));
+  if (drawerBackdrop) {
+    drawerBackdrop.addEventListener('click', () => setDrawerOpen(false));
+  }
+
+  // Tutup modal jika klik di luar kartu modal
+  collectionModal.addEventListener('click', (e) => {
+    if (e.target === collectionModal) collectionModal.classList.add('hidden');
+  });
+  quizModal.addEventListener('click', (e) => {
+    if (e.target === quizModal) quizModal.classList.add('hidden');
+  });
+
+  // Tutup semua overlay dengan tombol Escape (untuk PC/Laptop)
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      collectionModal.classList.add('hidden');
+      quizModal.classList.add('hidden');
+      setDrawerOpen(false);
+    }
   });
 
   document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -2390,7 +2439,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!state.isDragging) state.targetRotY += dt * 0.24;
 
-    const floatY = Math.sin(t * 2.1) * 0.08;
+    const floatY = -0.1 + Math.sin(t * 2.1) * 0.07;
     arObjectRoot.position.x += (-state.gyroOffsetX - arObjectRoot.position.x) * 0.1;
     arObjectRoot.position.y += (floatY - state.gyroOffsetY - arObjectRoot.position.y) * 0.1;
 
