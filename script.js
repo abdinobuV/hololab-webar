@@ -243,8 +243,80 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     },
     {
-      id: 'firewall',
+      id: 'mesh',
       num: '#10',
+      name: 'Topologi Mesh',
+      fullTitle: '🕸️ Topologi Mesh (Jala)',
+      emoji: '🕸️',
+      category: 'topologi',
+      categoryLabel: 'TOPOLOGI JARINGAN',
+      rarity: 'epic',
+      topicTab: 'topik2',
+      shortDesc: 'Setiap node saling terhubung penuh dengan banyak jalur cadangan.',
+      desc: 'Pada Topologi Mesh (Full Mesh), setiap perangkat terhubung langsung ke semua perangkat lain. Sangat andal karena jika 1 kabel putus, data otomatis berbelok lewat jalur cadangan; namun butuh sangat banyak kabel.',
+      tip: '👆 Tap kabel depan atau tekan "⚠️ 1 Jalur Putus (Reroute)" untuk melihat jalur cadangan!',
+      quiz: {
+        question: 'Apa keunggulan utama Topologi Mesh dibandingkan Topologi Bus atau Ring?',
+        options: [
+          'Menggunakan kabel paling sedikit dan paling murah',
+          'Sangat andal karena memiliki banyak jalur cadangan jika satu kabel putus',
+          'Tidak membutuhkan kartu jaringan pada komputer'
+        ],
+        answerIndex: 1,
+        explanation: 'Mantap! Topologi Mesh punya redundansi jalur tinggi sehingga tetap berjalan meski ada 1 kabel terputus.'
+      }
+    },
+    {
+      id: 'tree',
+      num: '#11',
+      name: 'Topologi Tree',
+      fullTitle: '🌳 Topologi Tree (Pohon)',
+      emoji: '🌳',
+      category: 'topologi',
+      categoryLabel: 'TOPOLOGI JARINGAN',
+      rarity: 'rare',
+      topicTab: 'topik2',
+      shortDesc: 'Struktur hierarki bertingkat dari Switch Root ke cabang-cabang Star.',
+      desc: 'Topologi Tree (Pohon) membentuk hierarki bertingkat dari Switch Root di puncak menuju Sub-Switch cabang (misal Lab A & Lab B). Sangat mudah diperluas untuk gedung bertingkat.',
+      tip: '👆 Tap Sub-Switch Cabang atau Switch Root Utama untuk simulasi gangguan bertingkat!',
+      quiz: {
+        question: 'Pada Topologi Tree, apa yang terjadi jika hanya satu Sub-Switch cabang (Lab A) yang rusak?',
+        options: [
+          'Cabang Lab A terputus, tetapi cabang lain (Lab B) masih tetap aktif di jaringannya',
+          'Semua gedung di seluruh kota ikut padam listrik',
+          'Topologi Tree otomatis berubah menjadi kabel Fiber Optic'
+        ],
+        answerIndex: 0,
+        explanation: 'Benar! Gangguan pada satu Sub-Switch cabang hanya memengaruhi perangkat di bawah cabang tersebut.'
+      }
+    },
+    {
+      id: 'hybrid',
+      num: '#12',
+      name: 'Topologi Hybrid',
+      fullTitle: '🔀 Topologi Hybrid (Campuran)',
+      emoji: '🔀',
+      category: 'topologi',
+      categoryLabel: 'TOPOLOGI JARINGAN',
+      rarity: 'legendary',
+      topicTab: 'topik2',
+      shortDesc: 'Gabungan dua atau lebih topologi berbeda (misal Star + Ring) dalam 1 jaringan.',
+      desc: 'Topologi Hybrid menggabungkan dua atau lebih topologi berbeda (di sini Topologi Star di kiri + Topologi Ring di kanan) melalui Router penghubung. Sangat fleksibel untuk perusahaan atau kampus besar.',
+      tip: '👆 Tap Router Penghubung di tengah untuk melihat paket melintas antara Star ↔ Ring!',
+      quiz: {
+        question: 'Apa yang dimaksud dengan Topologi Hybrid dalam jaringan komputer?',
+        options: [
+          'Jaringan yang hanya terdiri dari satu komputer tanpa kabel',
+          'Gabungan dua atau lebih jenis topologi jaringan berbeda dalam satu sistem jaringan',
+          'Topologi yang hanya boleh memakai kabel telepon lama'
+        ],
+        answerIndex: 1,
+        explanation: 'Luar biasa! Topologi Hybrid memadukan keunggulan beberapa topologi (seperti Star + Ring/Bus) sesuai kebutuhan gedung.'
+      }
+    },
+    {
+      id: 'firewall',
+      num: '#13',
       name: 'Firewall Shield',
       fullTitle: '🛡️ Firewall Shield (Legendary)',
       emoji: '🛡️',
@@ -297,6 +369,9 @@ document.addEventListener('DOMContentLoaded', () => {
     starMode: 'normal',
     busBroken: false,
     ringBroken: false,
+    meshReroute: false,
+    treeMode: 'normal', // 'normal' | 'branch-down' | 'root-down'
+    hybridBoost: 0,
     firewallAttackSurge: 0,
     // State lempar Net-Ball
     ballFlying: false,
@@ -379,6 +454,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const startScreen = document.getElementById('start-screen');
   const hudTop = document.getElementById('hud-top');
   const hudBottom = document.getElementById('hud-bottom');
+  const zoomControls = document.getElementById('zoom-controls');
+  const zoomLevelText = document.getElementById('zoom-level-text');
+  const btnZoomIn = document.getElementById('btn-zoom-in');
+  const btnZoomOut = document.getElementById('btn-zoom-out');
   const interactionToast = document.getElementById('interaction-toast');
   const toastContentWrap = document.getElementById('toast-content-wrap');
   const btnToggleLiveInfo = document.getElementById('btn-toggle-live-info');
@@ -1099,6 +1178,280 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  // Helper membuat silinder kabel yang presisi antara 2 titik 3D
+  function createCableBetween(p1, p2, radius = 0.028, color = 0x38bdf8) {
+    const v1 = new THREE.Vector3(...p1);
+    const v2 = new THREE.Vector3(...p2);
+    const dist = v1.distanceTo(v2);
+    const mesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius, radius, dist, 10),
+      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.25 })
+    );
+    mesh.position.copy(v1).add(v2).multiplyScalar(0.5);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v2.clone().sub(v1).normalize());
+    return mesh;
+  }
+
+  // 10. TOPOLOGI MESH (FULL MESH: 4 NODE + 6 KABEL PENUH + AUTO REROUTE!)
+  function createMeshModel() {
+    const group = new THREE.Group();
+    const coords = [
+      [-1.1, 0.05, 0.95],  // Node A (Depan Kiri)
+      [1.1, 0.05, 0.95],   // Node B (Depan Kanan)
+      [1.1, 0.05, -0.95],  // Node C (Belakang Kanan)
+      [-1.1, 0.05, -0.95]  // Node D (Belakang Kiri)
+    ];
+
+    coords.forEach((pt, i) => {
+      const box = new THREE.Mesh(
+        new THREE.BoxGeometry(0.4, 0.34, 0.34),
+        new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.4 })
+      );
+      box.position.set(pt[0], pt[1] + 0.12, pt[2]);
+      tagInteractive(box, 'mesh-toggle');
+      group.add(box);
+
+      const topLed = new THREE.Mesh(
+        new THREE.SphereGeometry(0.07, 14, 14),
+        new THREE.MeshBasicMaterial({ color: 0xa855f7 })
+      );
+      topLed.position.set(pt[0], pt[1] + 0.34, pt[2]);
+      group.add(topLed);
+
+      const lbl = makeLabelSprite(`NODE ${String.fromCharCode(65 + i)}`, 'rgba(15,23,42,0.88)', '#c084fc');
+      lbl.scale.set(0.65, 0.17, 1);
+      lbl.position.set(pt[0], pt[1] + 0.56, pt[2]);
+      group.add(lbl);
+    });
+
+    // 6 Kabel Full Mesh (4 sisi + 2 diagonal silang)
+    const pairs = [[0, 1], [1, 2], [2, 3], [3, 0], [0, 2], [1, 3]];
+    const cables = pairs.map(([a, b], idx) => {
+      const c = createCableBetween(coords[a], coords[b], 0.03, idx >= 4 ? 0xa855f7 : 0x38bdf8);
+      tagInteractive(c, 'mesh-toggle');
+      group.add(c);
+      return c;
+    });
+
+    const packet = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+    group.add(packet);
+
+    const titleLbl = makeLabelSprite('TOPOLOGI MESH • FULL REDUNDANCY', 'rgba(88,28,135,0.92)', '#c084fc');
+    titleLbl.position.set(0, 1.15, 0);
+    group.add(titleLbl);
+
+    return {
+      group,
+      update: (t) => {
+        // Kabel 0 (depan A-B) putus jika state.meshReroute = true
+        cables[0].material.color.setHex(state.meshReroute ? 0xef4444 : 0x38bdf8);
+        cables[0].material.emissive.setHex(state.meshReroute ? 0x991b1b : 0x0284c7);
+        cables[4].material.color.setHex(state.meshReroute ? 0x22c55e : 0xa855f7);
+        cables[1].material.color.setHex(state.meshReroute ? 0x22c55e : 0x38bdf8);
+
+        const p = (t * 0.9) % 1;
+        if (!state.meshReroute) {
+          // Langsung dari A -> B lewat kabel depan
+          const vA = new THREE.Vector3(...coords[0]);
+          const vB = new THREE.Vector3(...coords[1]);
+          packet.position.lerpVectors(vA, vB, p).y += 0.14;
+          packet.material.color.setHex(0xfacc15);
+        } else {
+          // Auto Reroute! A -> C (diagonal) -> B
+          const vA = new THREE.Vector3(...coords[0]);
+          const vC = new THREE.Vector3(...coords[2]);
+          const vB = new THREE.Vector3(...coords[1]);
+          if (p < 0.5) packet.position.lerpVectors(vA, vC, p * 2).y += 0.16;
+          else packet.position.lerpVectors(vC, vB, (p - 0.5) * 2).y += 0.16;
+          packet.material.color.setHex(0x22c55e);
+        }
+      }
+    };
+  }
+
+  // 11. TOPOLOGI TREE (POHON: ROOT SWITCH -> 2 SUB-SWITCH -> 4 PC KLIEN)
+  function createTreeModel() {
+    const group = new THREE.Group();
+    const posRoot = [0, 0.95, 0];
+    const posSubA = [-1.0, 0.15, 0];
+    const posSubB = [1.0, 0.15, 0];
+    const posClients = [
+      [-1.45, -0.58, 0.35],
+      [-0.55, -0.58, -0.35],
+      [0.55, -0.58, -0.35],
+      [1.45, -0.58, 0.35]
+    ];
+
+    // Switch Root Utama (Puncak)
+    const rootBox = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.24, 0.42), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.4 }));
+    rootBox.position.set(...posRoot);
+    tagInteractive(rootBox, 'tree-root');
+    group.add(rootBox);
+
+    const rootLbl = makeLabelSprite('ROOT SWITCH', 'rgba(2,132,199,0.9)', '#7dd3fc');
+    rootLbl.scale.set(0.82, 0.2, 1);
+    rootLbl.position.set(0, 1.32, 0);
+    group.add(rootLbl);
+
+    // 2 Sub-Switch (Lab A & Lab B)
+    const subA = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.35), new THREE.MeshStandardMaterial({ color: 0x10b981 }));
+    subA.position.set(...posSubA);
+    tagInteractive(subA, 'tree-branch');
+    group.add(subA);
+
+    const subB = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.35), new THREE.MeshStandardMaterial({ color: 0x10b981 }));
+    subB.position.set(...posSubB);
+    tagInteractive(subB, 'tree-normal');
+    group.add(subB);
+
+    // Kabel Root -> SubA & SubB
+    const cRootA = createCableBetween(posRoot, posSubA, 0.032, 0x38bdf8);
+    const cRootB = createCableBetween(posRoot, posSubB, 0.032, 0x38bdf8);
+    group.add(cRootA, cRootB);
+
+    // 4 Klien di bawah SubA (0,1) dan SubB (2,3)
+    const clientScreens = [];
+    const clientCables = [];
+    posClients.forEach((pcPos, idx) => {
+      const parentPos = idx < 2 ? posSubA : posSubB;
+      const cab = createCableBetween(parentPos, pcPos, 0.024, 0x34d399);
+      group.add(cab);
+      clientCables.push(cab);
+
+      const pc = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.14), new THREE.MeshStandardMaterial({ color: 0x334155 }));
+      pc.position.set(...pcPos);
+      tagInteractive(pc, idx < 2 ? 'tree-branch' : 'tree-normal');
+      group.add(pc);
+
+      const scr = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.17, 0.16), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+      scr.position.set(...pcPos);
+      group.add(scr);
+      clientScreens.push(scr);
+    });
+
+    const pktA = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 14), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+    const pktB = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 14), new THREE.MeshBasicMaterial({ color: 0x34d399 }));
+    group.add(pktA, pktB);
+
+    const titleLbl = makeLabelSprite('TOPOLOGI TREE (POHON)', 'rgba(6,95,70,0.9)', '#34d399');
+    titleLbl.position.set(0, 1.68, 0);
+    group.add(titleLbl);
+
+    return {
+      group,
+      update: (t) => {
+        const isBranchDown = state.treeMode === 'branch-down';
+        const isRootDown = state.treeMode === 'root-down';
+
+        rootBox.material.color.setHex(isRootDown ? 0xef4444 : 0x0284c7);
+        subA.material.color.setHex(isBranchDown ? 0xef4444 : 0x10b981);
+        subB.material.color.setHex(0x10b981);
+
+        cRootA.material.color.setHex(isRootDown || isBranchDown ? 0xef4444 : 0x38bdf8);
+        cRootB.material.color.setHex(isRootDown ? 0xef4444 : 0x38bdf8);
+
+        clientScreens.forEach((s, i) => {
+          const dead = isRootDown || (isBranchDown && i < 2);
+          s.material.color.setHex(dead ? 0xef4444 : 0x38bdf8);
+          clientCables[i].material.color.setHex(dead ? 0x64748b : 0x34d399);
+        });
+
+        // Paket Lab A (berhenti jika branch-down atau root-down)
+        pktA.visible = !isBranchDown && !isRootDown;
+        if (pktA.visible) {
+          const w = (Math.sin(t * 2.5) + 1) / 2;
+          pktA.position.lerpVectors(new THREE.Vector3(...posClients[0]), new THREE.Vector3(...posRoot), w);
+        }
+
+        // Paket Lab B (tetap jalan di dalam cabang B jika hanya Lab A yang rusak!)
+        pktB.visible = !isRootDown;
+        if (pktB.visible) {
+          const w = (Math.sin(t * 2.5 + 1.4) + 1) / 2;
+          const topTarget = isBranchDown ? new THREE.Vector3(...posSubB) : new THREE.Vector3(...posRoot);
+          pktB.position.lerpVectors(new THREE.Vector3(...posClients[3]), topTarget, w);
+        }
+      }
+    };
+  }
+
+  // 12. TOPOLOGI HYBRID (GABUNGAN STAR DI KIRI + RING DI KANAN LEWAT ROUTER TENGAH)
+  function createHybridModel() {
+    const group = new THREE.Group();
+
+    // Router Penghubung Tengah
+    const bridge = new THREE.Mesh(
+      new THREE.BoxGeometry(0.46, 0.28, 0.42),
+      new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xb45309, emissiveIntensity: 0.4, metalness: 0.5 })
+    );
+    tagInteractive(bridge, 'hybrid-bridge');
+    group.add(bridge);
+
+    // KIRI: Mini Topologi STAR (pusat di x = -1.15)
+    const starCenter = [-1.15, 0, 0];
+    const sw = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.2, 0.28), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
+    sw.position.set(...starCenter);
+    tagInteractive(sw, 'hybrid-star');
+    group.add(sw);
+
+    const starNodes = [[-1.65, 0, -0.58], [-1.75, 0, 0.48], [-0.95, 0, 0.72]];
+    starNodes.forEach((pt) => {
+      group.add(createCableBetween(starCenter, pt, 0.022, 0x38bdf8));
+      const n = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.2, 0.14), new THREE.MeshStandardMaterial({ color: 0x38bdf8 }));
+      n.position.set(pt[0], 0.1, pt[2]);
+      tagInteractive(n, 'hybrid-star');
+      group.add(n);
+    });
+    group.add(createCableBetween(starCenter, [0, 0, 0], 0.032, 0xfacc15));
+
+    // KANAN: Mini Topologi RING (pusat di x = +1.15)
+    const ringCenter = [1.15, 0, 0];
+    const miniRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.55, 0.03, 12, 40),
+      new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x7e22ce, emissiveIntensity: 0.4 })
+    );
+    miniRing.rotation.x = Math.PI / 2;
+    miniRing.position.set(...ringCenter);
+    tagInteractive(miniRing, 'hybrid-ring');
+    group.add(miniRing);
+
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2;
+      const n = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.2, 0.18), new THREE.MeshStandardMaterial({ color: 0xc084fc }));
+      n.position.set(ringCenter[0] + Math.cos(a) * 0.55, 0.1, Math.sin(a) * 0.55);
+      tagInteractive(n, 'hybrid-ring');
+      group.add(n);
+    }
+    group.add(createCableBetween([0, 0, 0], [0.6, 0, 0], 0.032, 0xfacc15));
+
+    // Paket Lintas Topologi (Star <-> Bridge <-> Ring) & Token Ring
+    const crossPacket = new THREE.Mesh(new THREE.SphereGeometry(0.09, 14, 14), new THREE.MeshBasicMaterial({ color: 0x22c55e }));
+    const ringToken = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 14), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+    group.add(crossPacket, ringToken);
+
+    const lblStar = makeLabelSprite('GRUP STAR', 'rgba(12,74,110,0.9)', '#38bdf8');
+    lblStar.scale.set(0.7, 0.18, 1);
+    lblStar.position.set(-1.2, 0.65, 0);
+    const lblRing = makeLabelSprite('GRUP RING', 'rgba(88,28,135,0.9)', '#c084fc');
+    lblRing.scale.set(0.7, 0.18, 1);
+    lblRing.position.set(1.2, 0.65, 0);
+    const titleLbl = makeLabelSprite('TOPOLOGI HYBRID • STAR + RING', 'rgba(120,53,15,0.92)', '#facc15');
+    titleLbl.position.set(0, 1.2, 0);
+    group.add(lblStar, lblRing, titleLbl);
+
+    return {
+      group,
+      update: (t, dt) => {
+        const speed = state.hybridBoost > 0 ? 2.4 : 1.0;
+        if (state.hybridBoost > 0) state.hybridBoost = Math.max(0, state.hybridBoost - dt);
+        const w = Math.sin(t * 2.0 * speed);
+        crossPacket.position.set(w * 1.15, 0.18 + Math.abs(Math.cos(t * 2.0 * speed)) * 0.16, 0);
+
+        const ang = t * 2.5 * speed;
+        ringToken.position.set(ringCenter[0] + Math.cos(ang) * 0.55, 0.12, Math.sin(ang) * 0.55);
+      }
+    };
+  }
+
   // 10. FIREWALL SHIELD (LEGENDARY — BLOKIR PAKET MERAH, LOLOSKAN PAKET HIJAU!)
   function createFirewallModel() {
     const group = new THREE.Group();
@@ -1194,6 +1547,8 @@ document.addEventListener('DOMContentLoaded', () => {
     state.starMode = 'normal';
     state.busBroken = false;
     state.ringBroken = false;
+    state.meshReroute = false;
+    state.treeMode = 'normal';
     interactiveMeshes = [];
     modelRefs = {};
 
@@ -1224,6 +1579,9 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'star': built = createStarModel(); break;
         case 'bus': built = createBusModel(); break;
         case 'ring': built = createRingModel(); break;
+        case 'mesh': built = createMeshModel(); break;
+        case 'tree': built = createTreeModel(); break;
+        case 'hybrid': built = createHybridModel(); break;
         case 'firewall': built = createFirewallModel(); break;
         default: built = createRouterModel();
       }
@@ -1231,9 +1589,9 @@ document.addEventListener('DOMContentLoaded', () => {
       currentAnimFn = built.update;
     }
 
-    // Animasi muncul membesar ala Pokemon
+    // Animasi muncul membesar ala Pokemon (tetap pertahankan skala pilihan user atau reset ke 1.0x)
     arObjectRoot.scale.setScalar(0.15);
-    state.targetScale = 1.0;
+    setZoomScale(1.0);
 
     // Update UI Dock, Strip, Kartu Materi Live & Tab Materi
     dockCharEmoji.textContent = char.emoji;
@@ -1347,8 +1705,47 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSpecialActionButtons('ring');
         handlePartInteraction('ring-broken-info');
       }, false, state.ringBroken);
+    } else if (id === 'mesh') {
+      addSpecialBtn('✅ Jalur Langsung', () => {
+        state.meshReroute = false;
+        renderSpecialActionButtons('mesh');
+        updateLiveMateriCard('mesh');
+        sfx.tap();
+      }, !state.meshReroute);
+      addSpecialBtn('⚠️ 1 Jalur Putus (Auto Reroute)', () => {
+        state.meshReroute = true;
+        renderSpecialActionButtons('mesh');
+        handlePartInteraction('mesh-reroute-info');
+      }, false, state.meshReroute);
+    } else if (id === 'tree') {
+      addSpecialBtn('✅ Normal', () => setTreeSim('normal'), state.treeMode === 'normal');
+      addSpecialBtn('⚠️ Cabang Lab A Rusak', () => setTreeSim('branch-down'), false, state.treeMode === 'branch-down');
+      addSpecialBtn('❌ Root Utama Rusak', () => setTreeSim('root-down'), false, state.treeMode === 'root-down');
+    } else if (id === 'hybrid') {
+      addSpecialBtn('⚡ Uji Kirim Lintas Topologi (Star ↔ Ring)', () => handlePartInteraction('hybrid-bridge'));
     } else if (id === 'firewall') {
       addSpecialBtn('🚨 Uji Blokir Serangan Siber', () => handlePartInteraction('firewall-shield'));
+    }
+  }
+
+  function setTreeSim(mode) {
+    state.treeMode = mode;
+    renderSpecialActionButtons('tree');
+    sfx.tap();
+    if (mode === 'normal') {
+      updateLiveMateriCard('tree');
+    } else if (mode === 'branch-down') {
+      updateLiveMateriCard('tree', {
+        tag: 'SIMULASI TOPOLOGI TREE',
+        title: '⚠️ Sub-Switch Cabang Lab A Rusak!',
+        desc: 'Perhatikan sisi kiri (Lab A) padam merah, namun sisi kanan (Lab B) TETAP dapat berkomunikasi secara lokal di cabangnya sendiri!'
+      });
+    } else {
+      updateLiveMateriCard('tree', {
+        tag: 'SIMULASI TOPOLOGI TREE',
+        title: '❌ Switch Root Utama Rusak!',
+        desc: 'Ketika Switch Root di puncak pohon bermasalah, komunikasi lintas cabang (antar Lab A dan Lab B) langsung terputus!'
+      });
     }
   }
 
@@ -1487,6 +1884,40 @@ document.addEventListener('DOMContentLoaded', () => {
         title: '❌ 1 Jalur Ring Terputus!',
         desc: 'Ketika satu segmen kabel cincin terputus, aliran Token satu arah terhenti sehingga komunikasi antar node terganggu.'
       } : null);
+    } else if (partId === 'mesh-toggle' || partId === 'mesh-reroute-info') {
+      sfx.tap();
+      if (partId !== 'mesh-reroute-info') {
+        state.meshReroute = !state.meshReroute;
+        renderSpecialActionButtons('mesh');
+      }
+      updateLiveMateriCard('mesh', state.meshReroute ? {
+        title: '✅ Jalur Depan Putus → Auto Reroute Aktif!',
+        desc: 'Meskipun kabel depan Node A-B putus (merah), paket data hijau langsung berbelok melewati jalur cadangan diagonal (A → C → B)! Jaringan tetap aktif 100%.'
+      } : null);
+    } else if (partId === 'tree-root') {
+      setTreeSim(state.treeMode === 'root-down' ? 'normal' : 'root-down');
+    } else if (partId === 'tree-branch') {
+      setTreeSim(state.treeMode === 'branch-down' ? 'normal' : 'branch-down');
+    } else if (partId === 'tree-normal') {
+      setTreeSim('normal');
+    } else if (partId === 'hybrid-bridge' || partId === 'hybrid-star' || partId === 'hybrid-ring') {
+      sfx.tap();
+      state.hybridBoost = 1.6;
+      const msgMap = {
+        'hybrid-bridge': {
+          title: '⚡ Paket Melintas Antar Topologi (Star ↔ Ring)!',
+          desc: 'Router/Bridge di tengah menerjemahkan dan meneruskan paket data secara mulus antara jaringan Topologi Star (kiri) dan Topologi Ring (kanan).'
+        },
+        'hybrid-star': {
+          title: '⭐ Segmen Kiri: Topologi Star',
+          desc: 'Segmen gedung kiri memakai Topologi Star (Switch + 3 klien) lalu terhubung ke Router pusat menuju segmen topologi lainnya.'
+        },
+        'hybrid-ring': {
+          title: '⭕ Segmen Kanan: Topologi Ring',
+          desc: 'Segmen gedung kanan memakai Topologi Ring dengan aliran Token melingkar yang disatukan ke jaringan besar lewat Router penghubung.'
+        }
+      };
+      updateLiveMateriCard('hybrid', msgMap[partId]);
     } else if (partId === 'firewall-shield') {
       sfx.shieldBlock();
       state.firewallAttackSurge = 1.2;
@@ -1501,9 +1932,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // STRIP 10 KARAKTER & GALERI KOLEKSI ("NET-DEX")
   // ==========================================================================
   function getRankTitle(count) {
-    if (count >= 10) return '🏆 Master TJKT';
-    if (count >= 7) return '⚡ Network Engineer';
-    if (count >= 4) return '🔧 Teknisi LAN';
+    if (count >= 13) return '🏆 Master TJKT';
+    if (count >= 9) return '⚡ Network Engineer';
+    if (count >= 5) return '🔧 Teknisi LAN';
     if (count >= 1) return '📡 Penjelajah Jaringan';
     return 'Pemula Jaringan';
   }
@@ -1771,11 +2202,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ==========================================================================
+  // KONTROL ZOOM (TOMBOL + / - , PINCH-TO-ZOOM 2 JARI DI HP, & MOUSE WHEEL)
+  // ==========================================================================
+  function setZoomScale(newScale) {
+    state.targetScale = Math.max(0.4, Math.min(2.4, newScale));
+    if (zoomLevelText) {
+      zoomLevelText.textContent = `${state.targetScale.toFixed(1)}x`;
+    }
+  }
+
+  btnZoomIn.addEventListener('click', () => {
+    setZoomScale(state.targetScale + 0.2);
+    sfx.tap();
+  });
+
+  btnZoomOut.addEventListener('click', () => {
+    setZoomScale(state.targetScale - 0.2);
+    sfx.tap();
+  });
+
+  zoomLevelText.addEventListener('click', () => {
+    setZoomScale(1.0);
+    sfx.tap();
+  });
+
   async function enterExperience(useCamera) {
     sfx.ensure();
     startScreen.classList.add('hidden');
     hudTop.classList.remove('hidden');
     hudBottom.classList.remove('hidden');
+    zoomControls.classList.remove('hidden');
     interactionToast.classList.remove('hidden');
     state.started = true;
 
@@ -1801,47 +2258,96 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-recenter').addEventListener('click', () => {
     state.targetRotX = 0.22;
     state.targetRotY = 0.45;
-    state.targetScale = 1.0;
+    setZoomScale(1.0);
     state.wobbleTimer = 0.35;
     sfx.tap();
   });
 
-  // Pointer Drag + Tap Raycasting
+  // Multi-Touch Pinch-to-Zoom (2 Jari) + Drag Putar (1 Jari) + Tap Raycasting
+  const activePointers = new Map();
+  let initialPinchDist = null;
+  let initialPinchScale = 1.0;
+  let didPinchGesture = false;
+
+  function getPinchDistance() {
+    const pts = Array.from(activePointers.values());
+    if (pts.length < 2) return null;
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
+
   canvasContainer.addEventListener('pointerdown', (e) => {
-    state.isDragging = true;
-    state.pointerDownPos = { x: e.clientX, y: e.clientY };
-    state.prevPointer = { x: e.clientX, y: e.clientY };
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.size === 2) {
+      // Mulai gestur cubit / rentang 2 jari (Pinch-to-Zoom)
+      state.isDragging = false;
+      didPinchGesture = true;
+      initialPinchDist = getPinchDistance();
+      initialPinchScale = state.targetScale;
+    } else if (activePointers.size === 1) {
+      state.isDragging = true;
+      didPinchGesture = false;
+      state.pointerDownPos = { x: e.clientX, y: e.clientY };
+      state.prevPointer = { x: e.clientX, y: e.clientY };
+    }
   });
 
   window.addEventListener('pointermove', (e) => {
-    if (!state.isDragging) return;
-    const dx = e.clientX - state.prevPointer.x;
-    const dy = e.clientY - state.prevPointer.y;
-    state.targetRotY += dx * 0.01;
-    state.targetRotX = Math.max(-1.0, Math.min(1.1, state.targetRotX + dy * 0.008));
-    state.prevPointer = { x: e.clientX, y: e.clientY };
-  });
+    if (!activePointers.has(e.pointerId)) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-  window.addEventListener('pointerup', (e) => {
-    if (!state.isDragging) return;
-    state.isDragging = false;
-    const moved = Math.hypot(e.clientX - state.pointerDownPos.x, e.clientY - state.pointerDownPos.y);
-    if (moved < 12 && state.started) {
-      tapCoords.x = (e.clientX / window.innerWidth) * 2 - 1;
-      tapCoords.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      raycaster.setFromCamera(tapCoords, camera);
-      const hits = raycaster.intersectObjects(interactiveMeshes, false);
-      if (hits.length > 0 && hits[0].object.userData.partId) {
-        handlePartInteraction(hits[0].object.userData.partId);
+    if (activePointers.size === 2 && initialPinchDist) {
+      const curDist = getPinchDistance();
+      if (curDist && initialPinchDist > 10) {
+        const ratio = curDist / initialPinchDist;
+        setZoomScale(initialPinchScale * ratio);
       }
+      return;
+    }
+
+    if (state.isDragging && activePointers.size === 1) {
+      const dx = e.clientX - state.prevPointer.x;
+      const dy = e.clientY - state.prevPointer.y;
+      state.targetRotY += dx * 0.01;
+      state.targetRotX = Math.max(-1.0, Math.min(1.1, state.targetRotX + dy * 0.008));
+      state.prevPointer = { x: e.clientX, y: e.clientY };
     }
   });
+
+  function handlePointerEnd(e) {
+    if (!activePointers.has(e.pointerId)) return;
+    activePointers.delete(e.pointerId);
+
+    if (activePointers.size < 2) {
+      initialPinchDist = null;
+    }
+
+    if (activePointers.size === 0) {
+      const wasDragging = state.isDragging;
+      state.isDragging = false;
+      if (wasDragging && !didPinchGesture && state.started) {
+        const moved = Math.hypot(e.clientX - state.pointerDownPos.x, e.clientY - state.pointerDownPos.y);
+        if (moved < 12) {
+          tapCoords.x = (e.clientX / window.innerWidth) * 2 - 1;
+          tapCoords.y = -(e.clientY / window.innerHeight) * 2 + 1;
+          raycaster.setFromCamera(tapCoords, camera);
+          const hits = raycaster.intersectObjects(interactiveMeshes, false);
+          if (hits.length > 0 && hits[0].object.userData.partId) {
+            handlePartInteraction(hits[0].object.userData.partId);
+          }
+        }
+      }
+    }
+  }
+
+  window.addEventListener('pointerup', handlePointerEnd);
+  window.addEventListener('pointercancel', handlePointerEnd);
 
   canvasContainer.addEventListener(
     'wheel',
     (e) => {
       e.preventDefault();
-      state.targetScale = Math.max(0.55, Math.min(1.85, state.targetScale - e.deltaY * 0.001));
+      setZoomScale(state.targetScale - e.deltaY * 0.0012);
     },
     { passive: false }
   );

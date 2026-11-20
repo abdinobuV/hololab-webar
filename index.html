@@ -37,13 +37,13 @@
       <div class="start-logo">📡</div>
       <h1>NetGO <span>WebAR</span></h1>
       <p class="start-desc">
-        Jelajahi ruang nyata lewat kamera HP untuk menemukan <strong>10 Karakter Jaringan</strong> (Perangkat Keras, Media Transmisi, Topologi &amp; Firewall), berinteraksi langsung dengan objek 3D, dan lengkapi <strong>Galeri Koleksi Net-Dex</strong>!
+        Jelajahi ruang nyata lewat kamera HP untuk menemukan <strong>13 Karakter Jaringan</strong> (Perangkat Keras, Media Transmisi, 6 Topologi Lengkap &amp; Firewall), perbesar/perkecil objek 3D, dan lengkapi <strong>Galeri Koleksi Net-Dex</strong>!
       </p>
 
       <div class="start-steps">
         <div class="step-item"><span>📷</span> Kamera aktif → objek 3D + penjelasan materi langsung muncul</div>
-        <div class="step-item"><span>👆</span> Tap objek 3D untuk simulasi interaktif (WAN/LAN, Bedah Kabel, Topologi)</div>
-        <div class="step-item"><span>🏆</span> Lempar Net-Ball, jawab kuis, &amp; kumpulkan 10/10 karakter di Koleksi!</div>
+        <div class="step-item"><span>🔍</span> Cubit 2 jari / tombol <b>+ −</b> untuk zoom &amp; tap objek untuk simulasi</div>
+        <div class="step-item"><span>🏆</span> Lempar Net-Ball, jawab kuis, &amp; kumpulkan 13/13 karakter di Koleksi!</div>
       </div>
 
       <button id="btn-start-ar" class="btn-start-primary" type="button">
@@ -68,7 +68,7 @@
       </div>
       <div class="player-status">
         <div class="dex-badge">
-          🏆 Koleksi: <strong id="caught-count">0</strong>/10
+          🏆 Koleksi: <strong id="caught-count">0</strong>/13
         </div>
         <div class="xp-text" id="xp-display">XP: 0 • Pemula Jaringan</div>
       </div>
@@ -117,6 +117,16 @@
   </div>
 
   <!-- =========================================================================
+       6B. KONTROL ZOOM PERBESAR / PERKECIL KARAKTER (+ / - & INDIKATOR SKALA)
+       (Selain tombol ini, mendukung juga Pinch-to-Zoom 2 jari di layar HP!)
+       ========================================================================= -->
+  <div id="zoom-controls" class="zoom-controls hidden" aria-label="Kontrol Ukuran Karakter 3D">
+    <button id="btn-zoom-in" class="zoom-btn" type="button" title="Perbesar Karakter (+)">＋</button>
+    <div id="zoom-level-text" class="zoom-level" title="Klik untuk reset ukuran 1.0x">1.0x</div>
+    <button id="btn-zoom-out" class="zoom-btn" type="button" title="Perkecil Karakter (-)">－</button>
+  </div>
+
+  <!-- =========================================================================
        7. HUD BAWAH (INTERAKSI SPESIAL, NAVIGASI 10 KARAKTER, & TOMBOL NET-BALL)
        ========================================================================= -->
   <footer id="hud-bottom" class="hud-bottom hidden">
@@ -131,7 +141,7 @@
         <span class="char-pill-emoji" id="dock-char-emoji">📡</span>
         <div class="char-pill-info">
           <strong id="dock-char-name">Router</strong>
-          <small id="dock-char-index">1 / 10</small>
+          <small id="dock-char-index">1 / 13</small>
         </div>
       </div>
 
@@ -169,7 +179,7 @@
       <!-- Progress Bar & Rank -->
       <div class="collection-summary">
         <div class="summary-top">
-          <span id="col-progress-text">0 / 10 Karakter Tertangkap (0%)</span>
+          <span id="col-progress-text">0 / 13 Karakter Tertangkap (0%)</span>
           <span class="rank-pill" id="col-rank-badge">Pemula Jaringan</span>
         </div>
         <div class="progress-track">
@@ -179,11 +189,11 @@
 
       <!-- Filter Kategori Koleksi -->
       <div class="collection-filters" id="collection-filters">
-        <button class="filter-chip active" data-filter="all" type="button">Semua (10)</button>
-        <button class="filter-chip" data-filter="perangkat" type="button">Perangkat</button>
-        <button class="filter-chip" data-filter="media" type="button">Media</button>
-        <button class="filter-chip" data-filter="topologi" type="button">Topologi</button>
-        <button class="filter-chip" data-filter="keamanan" type="button">Keamanan</button>
+        <button class="filter-chip active" data-filter="all" type="button">Semua (13)</button>
+        <button class="filter-chip" data-filter="perangkat" type="button">Perangkat (4)</button>
+        <button class="filter-chip" data-filter="media" type="button">Media (2)</button>
+        <button class="filter-chip" data-filter="topologi" type="button">Topologi (6)</button>
+        <button class="filter-chip" data-filter="keamanan" type="button">Keamanan (1)</button>
       </div>
 
       <!-- Grid Daftar Karakter (Diisi dinamis oleh script.js) -->
@@ -324,7 +334,31 @@
         </article>
 
         <article class="materi-card">
-          <span class="tag tag-green">4. FIREWALL (KEAMANAN JARINGAN)</span>
+          <span class="tag tag-purple">4. TOPOLOGI MESH (JALA)</span>
+          <h3>Saling Terhubung Penuh dengan Jalur Cadangan</h3>
+          <p>
+            Pada <strong>Topologi Mesh</strong>, setiap perangkat terhubung langsung ke beberapa atau semua perangkat lain (*Full Mesh*). Sangat andal (*fault tolerant*) karena jika <strong>1 kabel putus</strong>, paket data otomatis mencari <strong>jalur cadangan lain</strong>; namun membutuhkan sangat banyak kabel dan biaya tinggi.
+          </p>
+        </article>
+
+        <article class="materi-card">
+          <span class="tag tag-green">5. TOPOLOGI TREE (POHON)</span>
+          <h3>Struktur Hierarki Bertingkat</h3>
+          <p>
+            <strong>Topologi Tree</strong> menggabungkan struktur tulang punggung dengan cabang-cabang Star secara hierarkis (dari <strong>Switch Root</strong> utama di puncak ke <strong>Sub-Switch</strong> di tiap lantai/ruang lab). Mudah diperluas, tetapi gangguan pada Root utama dapat memutus komunikasi antar cabang.
+          </p>
+        </article>
+
+        <article class="materi-card">
+          <span class="tag tag-amber">6. TOPOLOGI HYBRID (CAMPURAN)</span>
+          <h3>Gabungan Dua atau Lebih Topologi</h3>
+          <p>
+            <strong>Topologi Hybrid</strong> memadukan dua atau lebih jenis topologi berbeda (misalnya <strong>Topologi Star</strong> di gedung A dihubungkan dengan <strong>Topologi Ring</strong> di gedung B lewat Router/Bridge) sehingga sangat fleksibel untuk jaringan skala besar.
+          </p>
+        </article>
+
+        <article class="materi-card">
+          <span class="tag tag-green">7. FIREWALL (KEAMANAN JARINGAN)</span>
           <h3>Perisai Penyaring Lalu Lintas Data</h3>
           <p>
             <strong>Firewall</strong> bertugas mengawasi dan menyaring paket data masuk maupun keluar berdasarkan aturan keamanan — meloloskan akses yang sah dan memblokir serangan siber / akses ilegal.
