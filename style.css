@@ -1,13 +1,13 @@
 /* ============================================================================
-   STYLE.CSS — NetGO WebAR (Edukasi TJKT Kelas X ala Game Pokemon GO AR)
+   STYLE.CSS — NetGO WebAR (10 Karakter Jaringan + Galeri Koleksi Net-Dex)
    Ringan, responsif untuk HP Android Portrait & Landscape, kontras tinggi
    di atas kamera langsung.
    ============================================================================ */
 
 :root {
   --bg-dark: #070d1a;
-  --glass: rgba(11, 19, 38, 0.82);
-  --glass-strong: rgba(11, 19, 38, 0.94);
+  --glass: rgba(11, 19, 38, 0.84);
+  --glass-strong: rgba(11, 19, 38, 0.96);
   --border: rgba(56, 189, 248, 0.34);
   --cyan: #38bdf8;
   --blue: #0284c7;
@@ -104,11 +104,13 @@ body {
 }
 
 .start-card {
-  width: min(100%, 420px);
+  width: min(100%, 430px);
+  max-height: 94vh;
+  overflow-y: auto;
   background: rgba(15, 23, 42, 0.92);
   border: 1px solid var(--border);
   border-radius: 24px;
-  padding: 24px 20px;
+  padding: 22px 20px;
   text-align: center;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
 }
@@ -123,11 +125,11 @@ body {
   border: 1px solid rgba(56, 189, 248, 0.35);
   padding: 4px 10px;
   border-radius: 99px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .start-logo {
-  font-size: 2.8rem;
+  font-size: 2.7rem;
   margin-bottom: 4px;
   animation: floatBob 2.4s ease-in-out infinite;
 }
@@ -148,10 +150,10 @@ body {
 }
 
 .start-desc {
-  font-size: 0.85rem;
-  line-height: 1.55;
+  font-size: 0.84rem;
+  line-height: 1.52;
   color: var(--muted);
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .start-steps {
@@ -159,7 +161,7 @@ body {
   background: rgba(30, 41, 59, 0.65);
   border-radius: 14px;
   padding: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -169,13 +171,13 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.78rem;
+  font-size: 0.77rem;
   line-height: 1.4;
   color: #e2e8f0;
 }
 
 .step-item span {
-  font-size: 1.1rem;
+  font-size: 1.08rem;
   flex-shrink: 0;
 }
 
@@ -188,7 +190,7 @@ body {
   font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.15s ease;
 }
 
 .btn-start-primary {
@@ -212,7 +214,7 @@ body {
 }
 
 /* ============================================================================
-   3. HUD ATAS (RADAR POKEMON GO, NET-DEX, & TOMBOL)
+   3. HUD ATAS (RADAR POKEMON GO, KOLEKSI NET-DEX, & TOMBOL)
    ============================================================================ */
 .hud-top {
   position: fixed;
@@ -223,7 +225,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   pointer-events: none;
 }
 
@@ -232,23 +234,34 @@ body {
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.hud-left {
+.hud-left-btn {
   background: var(--glass);
   border: 1px solid var(--border);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  padding: 6px 12px 6px 8px;
+  padding: 5px 12px 5px 6px;
   border-radius: 99px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease;
 }
 
-/* Mini Radar Animasi */
+.hud-left-btn:active {
+  transform: scale(0.96);
+}
+
+.hud-left-btn:hover {
+  border-color: #fde047;
+}
+
 .mini-radar {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(34, 197, 94, 0.22), rgba(2, 132, 199, 0.35));
   border: 1.5px solid rgba(56, 189, 248, 0.75);
@@ -271,8 +284,8 @@ body {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   background: #fff;
   border-radius: 50%;
   transform: translate(-50%, -50%);
@@ -281,9 +294,9 @@ body {
 .radar-blip {
   position: absolute;
   top: 7px;
-  right: 8px;
-  width: 6px;
-  height: 6px;
+  right: 7px;
+  width: 5px;
+  height: 5px;
   background: #facc15;
   border-radius: 50%;
   box-shadow: 0 0 6px #facc15;
@@ -296,13 +309,13 @@ body {
 }
 
 .dex-badge {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
   line-height: 1.2;
 }
 
 .xp-text {
-  font-size: 0.67rem;
+  font-size: 0.65rem;
   color: var(--cyan);
 }
 
@@ -312,28 +325,28 @@ body {
   background: var(--glass);
   backdrop-filter: blur(10px);
   color: var(--text);
-  border-radius: 12px;
-  height: 40px;
+  border-radius: 11px;
+  height: 38px;
   cursor: pointer;
   font-weight: 700;
   transition: transform 0.15s ease;
 }
 
 .hud-icon-btn {
-  width: 40px;
-  font-size: 1rem;
+  width: 36px;
+  font-size: 0.95rem;
 }
 
 .hud-materi-btn {
-  padding: 0 12px;
-  font-size: 0.78rem;
-  background: linear-gradient(135deg, rgba(2, 132, 199, 0.9), rgba(99, 102, 241, 0.9));
+  padding: 0 10px;
+  font-size: 0.76rem;
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.92), rgba(99, 102, 241, 0.92));
   border-color: rgba(186, 230, 253, 0.45);
 }
 
 .hud-icon-btn:active,
 .hud-materi-btn:active {
-  transform: scale(0.94);
+  transform: scale(0.93);
 }
 
 /* ============================================================================
@@ -341,51 +354,63 @@ body {
    ============================================================================ */
 .interaction-toast {
   position: fixed;
-  top: calc(max(10px, env(safe-area-inset-top)) + 58px);
+  top: calc(max(10px, env(safe-area-inset-top)) + 54px);
   left: 50%;
   transform: translateX(-50%);
-  width: min(94vw, 440px);
+  width: min(94vw, 450px);
   z-index: 19;
   background: var(--glass);
   border: 1px solid var(--border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 16px;
-  padding: 10px 14px;
+  padding: 9px 13px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  transition: all 0.25s ease;
 }
 
 .toast-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: 6px;
+  margin-bottom: 3px;
 }
 
 .toast-header-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
 .toast-tag {
-  font-size: 0.64rem;
+  font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
   color: var(--cyan);
 }
 
+.rarity-pill {
+  font-size: 0.58rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 99px;
+  letter-spacing: 0.5px;
+}
+
+.rarity-common { background: rgba(148, 163, 184, 0.25); color: #e2e8f0; border: 1px solid rgba(148, 163, 184, 0.4); }
+.rarity-rare { background: rgba(14, 165, 233, 0.25); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.5); }
+.rarity-epic { background: rgba(168, 85, 247, 0.28); color: #e9d5ff; border: 1px solid rgba(192, 132, 252, 0.55); }
+.rarity-legendary { background: linear-gradient(90deg, rgba(245, 158, 11, 0.35), rgba(234, 179, 8, 0.35)); color: #fef08a; border: 1px solid #facc15; }
+
 .toast-status {
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   font-weight: 800;
   padding: 2px 7px;
   border-radius: 99px;
-  background: rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.22);
   color: #fde047;
-  border: 1px solid rgba(250, 204, 21, 0.45);
+  border: 1px solid rgba(250, 204, 21, 0.42);
 }
 
 .toast-status.caught {
@@ -406,10 +431,9 @@ body {
 }
 
 .interaction-toast h3 {
-  font-size: 0.94rem;
+  font-size: 0.92rem;
   font-weight: 700;
-  margin-bottom: 4px;
-  color: #fff;
+  margin-bottom: 3px;
 }
 
 .toast-content-wrap.collapsed {
@@ -417,37 +441,38 @@ body {
 }
 
 .interaction-toast p {
-  font-size: 0.78rem;
-  line-height: 1.48;
+  font-size: 0.77rem;
+  line-height: 1.46;
   color: #e2e8f0;
 }
 
 .toast-tip {
-  margin-top: 6px;
-  padding-top: 6px;
+  margin-top: 5px;
+  padding-top: 5px;
   border-top: 1px dashed rgba(148, 163, 184, 0.28);
-  font-size: 0.72rem;
+  font-size: 0.71rem;
   color: #7dd3fc;
 }
 
 /* ============================================================================
-   5. HUD BAWAH (INTERAKSI SPESIAL + DOCK + TOMBOL NET-BALL ALA POKEBALL)
+   5. HUD BAWAH (INTERAKSI SPESIAL, DOCK NET-BALL, & STRIP 10 KARAKTER)
    ============================================================================ */
 .hud-bottom {
   position: fixed;
-  bottom: max(10px, env(safe-area-inset-bottom));
-  left: max(10px, env(safe-area-inset-left));
-  right: max(10px, env(safe-area-inset-right));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: max(8px, env(safe-area-inset-left));
+  right: max(8px, env(safe-area-inset-right));
   z-index: 20;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   pointer-events: none;
 }
 
 .special-actions,
-.action-dock {
+.action-dock,
+.character-strip {
   pointer-events: auto;
 }
 
@@ -465,8 +490,8 @@ body {
   backdrop-filter: blur(8px);
   color: #e0f2fe;
   border-radius: 99px;
-  padding: 6px 12px;
-  font-size: 0.73rem;
+  padding: 5px 11px;
+  font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.18s ease;
@@ -489,56 +514,93 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   background: var(--glass);
   border: 1px solid var(--border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  padding: 8px 10px;
-  border-radius: 22px;
+  padding: 6px 8px;
+  border-radius: 20px;
 }
 
-.target-selector {
-  display: flex;
-  gap: 5px;
-  flex: 1;
-}
-
-.target-chip {
-  position: relative;
-  flex: 1;
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  background: rgba(30, 41, 59, 0.75);
-  color: var(--muted);
+.nav-char-btn {
+  width: 34px;
+  height: 44px;
   border-radius: 12px;
-  padding: 9px 4px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.target-chip.active {
-  background: rgba(14, 165, 233, 0.28);
-  border-color: var(--cyan);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(30, 41, 59, 0.8);
   color: #fff;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+  font-size: 0.85rem;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
-.chip-check {
-  position: absolute;
-  top: -5px;
-  right: -4px;
-  font-size: 0.68rem;
+.current-char-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(30, 41, 59, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 13px;
+  padding: 6px 10px;
+  min-width: 0;
+  cursor: pointer;
 }
 
-/* Tombol Net-Ball Tengah (Desain Ala Pokéball Futuristik) */
+.char-pill-emoji {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.char-pill-info {
+  min-width: 0;
+}
+
+.char-pill-info strong {
+  display: block;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.char-pill-info small {
+  font-size: 0.65rem;
+  color: var(--cyan);
+}
+
+.dock-dex-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 66px;
+  height: 44px;
+  border-radius: 13px;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  background: rgba(245, 158, 11, 0.18);
+  color: #fef08a;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dock-dex-btn span {
+  font-size: 1.05rem;
+  line-height: 1.1;
+}
+
+.dock-dex-btn small {
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+/* Tombol Net-Ball Tengah (Ala Pokéball) */
 .netball-btn {
   position: relative;
-  width: 72px;
-  height: 72px;
-  margin-top: -24px;
+  width: 68px;
+  height: 68px;
+  margin-top: -22px;
   border-radius: 50%;
   border: 3px solid #f8fafc;
   background: linear-gradient(180deg, #0284c7 0%, #0284c7 47%, #0f172a 47%, #0f172a 55%, #f1f5f9 55%, #e2e8f0 100%);
@@ -548,7 +610,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.16s ease, box-shadow 0.2s ease;
+  transition: transform 0.16s ease;
 }
 
 .netball-btn:active {
@@ -556,8 +618,8 @@ body {
 }
 
 .netball-core {
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 19px;
   border-radius: 50%;
   background: #38bdf8;
   border: 3px solid #0f172a;
@@ -566,29 +628,273 @@ body {
 
 .netball-label {
   position: absolute;
-  bottom: -17px;
-  font-size: 0.62rem;
+  bottom: -16px;
+  font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.6px;
   color: #7dd3fc;
   text-shadow: 0 1px 4px #000;
 }
 
+/* Strip Horizontal 10 Karakter */
+.character-strip {
+  width: min(100%, 480px);
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.character-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.strip-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 99px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: var(--glass);
+  color: var(--muted);
+  font-size: 0.71rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.strip-chip.active {
+  background: rgba(14, 165, 233, 0.34);
+  border-color: var(--cyan);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+.strip-chip.caught {
+  border-color: rgba(34, 197, 94, 0.6);
+}
+
 /* ============================================================================
-   6. MODAL KUIS TANGKAP (MUNCUL SAAT NET-BALL KENA OBJEK)
+   6. MODAL GALERI KOLEKSI KARAKTER (NET-DEX ALA POKEDEX)
    ============================================================================ */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 45;
-  background: rgba(2, 6, 23, 0.78);
+  z-index: 46;
+  background: rgba(2, 6, 23, 0.82);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 14px;
 }
 
+.collection-card {
+  width: min(100%, 540px);
+  max-height: 90vh;
+  background: #0f172a;
+  border: 1px solid var(--cyan);
+  border-radius: 22px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.collection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.collection-header h3 {
+  font-size: 1.08rem;
+}
+
+.collection-summary {
+  background: rgba(30, 41, 59, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.summary-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 7px;
+}
+
+.rank-pill {
+  font-size: 0.68rem;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: rgba(56, 189, 248, 0.22);
+  color: #7dd3fc;
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0ea5e9, #22c55e, #facc15);
+  border-radius: 99px;
+  transition: width 0.35s ease;
+}
+
+.collection-filters {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 6px;
+  scrollbar-width: none;
+}
+
+.filter-chip {
+  flex: 0 0 auto;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(30, 41, 59, 0.7);
+  color: var(--muted);
+  border-radius: 99px;
+  padding: 5px 11px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filter-chip.active {
+  background: var(--blue);
+  border-color: var(--cyan);
+  color: #fff;
+}
+
+.collection-grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding-right: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dex-card {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  padding: 11px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dex-card.caught {
+  border-color: rgba(34, 197, 94, 0.55);
+  background: linear-gradient(180deg, rgba(22, 101, 52, 0.22), rgba(30, 41, 59, 0.9));
+}
+
+.dex-card.locked {
+  opacity: 0.78;
+  border-style: dashed;
+}
+
+.dex-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.dex-num {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.dex-emoji-wrap {
+  font-size: 2rem;
+  text-align: center;
+  padding: 4px 0;
+}
+
+.dex-card.locked .dex-emoji-wrap {
+  filter: grayscale(1) brightness(0.45);
+}
+
+.dex-card h4 {
+  font-size: 0.84rem;
+  text-align: center;
+  color: #fff;
+}
+
+.dex-card p {
+  font-size: 0.71rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+}
+
+.dex-action-btn {
+  width: 100%;
+  border: none;
+  border-radius: 9px;
+  padding: 7px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: rgba(14, 165, 233, 0.25);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.dex-card.caught .dex-action-btn {
+  background: rgba(34, 197, 94, 0.24);
+  color: #86efac;
+  border-color: rgba(74, 222, 128, 0.45);
+}
+
+.collection-footer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.btn-reset-small {
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  padding: 4px 9px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ============================================================================
+   7. MODAL KUIS TANGKAP & DRAWER MATERI
+   ============================================================================ */
 .quiz-card {
   width: min(100%, 420px);
   background: #0f172a;
@@ -631,7 +937,7 @@ body {
 }
 
 .quiz-question {
-  font-size: 0.86rem;
+  font-size: 0.85rem;
   line-height: 1.5;
   color: #e2e8f0;
   margin-bottom: 14px;
@@ -650,10 +956,9 @@ body {
   color: #f8fafc;
   padding: 11px 12px;
   border-radius: 12px;
-  font-size: 0.82rem;
+  font-size: 0.81rem;
   line-height: 1.35;
   cursor: pointer;
-  transition: all 0.18s ease;
 }
 
 .quiz-opt-btn.correct {
@@ -676,9 +981,7 @@ body {
   border: 1px solid rgba(56, 189, 248, 0.4);
 }
 
-/* ============================================================================
-   7. PANEL MATERI LENGKAP (DRAWER BUKA-TUTUP)
-   ============================================================================ */
+/* Drawer Materi */
 .materi-drawer {
   position: fixed;
   top: 0;
@@ -708,13 +1011,13 @@ body {
 }
 
 .drawer-badge {
-  font-size: 0.66rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: var(--cyan);
 }
 
 .drawer-header h2 {
-  font-size: 1.05rem;
+  font-size: 1.04rem;
 }
 
 .topic-tabs {
@@ -767,11 +1070,11 @@ body {
 
 .tag {
   display: inline-block;
-  font-size: 0.66rem;
+  font-size: 0.65rem;
   font-weight: 800;
   padding: 3px 8px;
   border-radius: 99px;
-  margin-bottom: 8px;
+  margin-bottom: 7px;
 }
 
 .tag-blue { background: rgba(14, 165, 233, 0.22); color: #7dd3fc; }
@@ -780,18 +1083,18 @@ body {
 .tag-purple { background: rgba(168, 85, 247, 0.22); color: #d8b4fe; }
 
 .materi-card h3 {
-  font-size: 0.94rem;
+  font-size: 0.93rem;
   margin-bottom: 6px;
 }
 
 .materi-card p {
-  font-size: 0.82rem;
-  line-height: 1.55;
+  font-size: 0.81rem;
+  line-height: 1.54;
   color: var(--muted);
 }
 
 .highlight-box {
-  margin-top: 10px;
+  margin-top: 9px;
   padding: 10px;
   border-radius: 10px;
   background: rgba(15, 23, 42, 0.8);
@@ -802,14 +1105,14 @@ body {
 .char-list {
   margin-top: 6px;
   padding-left: 16px;
-  font-size: 0.8rem;
-  line-height: 1.55;
+  font-size: 0.79rem;
+  line-height: 1.52;
   color: var(--muted);
 }
 
 .highlight-box li,
 .char-list li {
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .dot-wan,
@@ -827,22 +1130,27 @@ body {
 /* ============================================================================
    8. RESPONSIF MODE LANDSCAPE DI HP
    ============================================================================ */
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 520px) {
   .interaction-toast {
-    left: 12px;
+    left: 10px;
     transform: none;
-    width: 280px;
-    top: 56px;
-    padding: 8px 10px;
+    width: 270px;
+    top: 52px;
+    padding: 7px 10px;
   }
 
   .hud-bottom {
-    bottom: 6px;
+    bottom: 4px;
+    gap: 4px;
   }
 
   .netball-btn {
-    width: 58px;
-    height: 58px;
-    margin-top: -14px;
+    width: 56px;
+    height: 56px;
+    margin-top: -12px;
+  }
+
+  .collection-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }

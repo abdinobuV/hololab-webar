@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>NetGO WebAR — Jelajah & Tangkap Perangkat Jaringan TJKT Kelas X</title>
+  <title>NetGO WebAR — Koleksi 10 Karakter Jaringan TJKT Kelas X</title>
 
   <!--
     ===========================================================================
     LIBRARY 3D RINGAN (THREE.JS + GLTFLOADER)
-    Berjalan lancar di hampir semua HP Android (tanpa ARCore & tanpa cetak
-    marker kertas) dengan menggabungkan Live Camera + 3D Interaktif ala Pokemon GO.
+    Berjalan lancar di hampir semua HP Android (tanpa ARCore & tanpa marker)
+    dengan pengalaman kamera AR, interaksi 3D langsung, & Galeri Koleksi Net-Dex.
     ===========================================================================
   -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -25,13 +25,11 @@
   <!-- 2. LAYER CANVAS 3D THREE.JS (TRANSPARAN DI ATAS KAMERA) -->
   <div id="ar-canvas-container"></div>
 
-  <!-- 3. EFEK KILATAN SAAT NET-BALL MENGENAI OBJEK -->
+  <!-- 3. EFEK KILATAN SAAT NET-BALL MENGENAI KARAKTER -->
   <div id="flash-overlay"></div>
 
   <!-- =========================================================================
-       4. LAYAR AWAL (SPLASH / START SCREEN)
-       Diperlukan oleh browser HP Android/iOS agar izin kamera & sensor gyro
-       langsung aktif ketika siswa menekan tombol mulai.
+       4. LAYAR AWAL (START SCREEN)
        ========================================================================= -->
   <div id="start-screen" class="start-screen">
     <div class="start-card">
@@ -39,17 +37,17 @@
       <div class="start-logo">📡</div>
       <h1>NetGO <span>WebAR</span></h1>
       <p class="start-desc">
-        Aktifkan kamera HP-mu untuk menemukan objek <strong>Perangkat Keras Jaringan</strong> &amp; <strong>Topologi Star</strong> di ruang nyata, sentuh objeknya untuk berinteraksi, dan lempar <strong>Net-Ball</strong> untuk menangkapnya!
+        Jelajahi ruang nyata lewat kamera HP untuk menemukan <strong>10 Karakter Jaringan</strong> (Perangkat Keras, Media Transmisi, Topologi &amp; Firewall), berinteraksi langsung dengan objek 3D, dan lengkapi <strong>Galeri Koleksi Net-Dex</strong>!
       </p>
 
       <div class="start-steps">
-        <div class="step-item"><span>📷</span> Kamera aktif → objek 3D langsung muncul tanpa marker</div>
-        <div class="step-item"><span>👆</span> Sentuh (tap) objek 3D untuk melihat interaksi &amp; simulasi</div>
-        <div class="step-item"><span>⚡</span> Lempar Net-Ball &amp; jawab kuis untuk melengkapi Net-Dex (0/4)</div>
+        <div class="step-item"><span>📷</span> Kamera aktif → objek 3D + penjelasan materi langsung muncul</div>
+        <div class="step-item"><span>👆</span> Tap objek 3D untuk simulasi interaktif (WAN/LAN, Bedah Kabel, Topologi)</div>
+        <div class="step-item"><span>🏆</span> Lempar Net-Ball, jawab kuis, &amp; kumpulkan 10/10 karakter di Koleksi!</div>
       </div>
 
       <button id="btn-start-ar" class="btn-start-primary" type="button">
-        🚀 Aktifkan Kamera &amp; Mulai Bermain
+        🚀 Aktifkan Kamera &amp; Mulai Berburu
       </button>
       <button id="btn-start-preview" class="btn-start-secondary" type="button">
         🎮 Main Mode Studio 3D (Tanpa Kamera)
@@ -58,30 +56,33 @@
   </div>
 
   <!-- =========================================================================
-       5. HUD ATAS (RADAR ALA POKEMON GO, KOLEKSI NET-DEX, & TOMBOL MATERI)
+       5. HUD ATAS (RADAR, TOMBOL KOLEKSI NET-DEX, & TOMBOL MATERI)
        ========================================================================= -->
   <header id="hud-top" class="hud-top hidden">
-    <!-- Kiri: Mini Radar & Progress Tangkap -->
-    <div class="hud-left">
-      <div class="mini-radar" id="mini-radar" title="Radar Sinyal Jaringan">
+    <!-- Kiri: Mini Radar + Tombol Buka Galeri Koleksi -->
+    <button id="btn-open-collection" class="hud-left hud-left-btn" type="button" title="Buka Galeri Koleksi Karakter">
+      <div class="mini-radar">
         <div class="radar-sweep"></div>
         <div class="radar-center"></div>
-        <div class="radar-blip blip-1" id="radar-blip"></div>
+        <div class="radar-blip"></div>
       </div>
       <div class="player-status">
         <div class="dex-badge">
-          🏆 Net-Dex: <strong id="caught-count">0</strong>/4
+          🏆 Koleksi: <strong id="caught-count">0</strong>/10
         </div>
-        <div class="xp-text" id="xp-display">XP: 0 • Jelajah AR</div>
+        <div class="xp-text" id="xp-display">XP: 0 • Pemula Jaringan</div>
       </div>
-    </div>
+    </button>
 
     <!-- Kanan: Tombol Aksi Cepat -->
     <div class="hud-right">
+      <button id="btn-random-spawn" class="hud-icon-btn" type="button" title="Radar Acak (Cari Karakter Liar)">
+        🎲
+      </button>
       <button id="btn-switch-cam" class="hud-icon-btn" type="button" title="Ganti Kamera Depan/Belakang">
         🔄
       </button>
-      <button id="btn-recenter" class="hud-icon-btn" type="button" title="Panggil Objek ke Depan Kamera">
+      <button id="btn-recenter" class="hud-icon-btn" type="button" title="Tarik Objek ke Tengah Kamera">
         🎯
       </button>
       <button id="btn-open-materi" class="hud-materi-btn" type="button">
@@ -92,21 +93,22 @@
 
   <!-- =========================================================================
        6. KARTU PENJELASAN MATERI LIVE DI LAYAR KAMERA AR
-       Langsung tampil saat kamera aktif & berubah otomatis sesuai objek 3D
+       Langsung tampil saat kamera aktif & berubah otomatis sesuai karakter 3D
        yang muncul atau bagian 3D yang disentuh siswa!
        ========================================================================= -->
   <div id="interaction-toast" class="interaction-toast hidden">
     <div class="toast-header">
       <div class="toast-header-left">
-        <span class="toast-tag" id="toast-tag">TOPIK 1 • PERANGKAT JARINGAN</span>
-        <span class="toast-status" id="toast-caught-badge">LIAR</span>
+        <span class="toast-tag" id="toast-tag">PERANGKAT JARINGAN</span>
+        <span class="rarity-pill" id="toast-rarity">RARE</span>
+        <span class="toast-status" id="toast-caught-badge">⚡ LIAR</span>
       </div>
       <button id="btn-toggle-live-info" class="btn-mini-toggle" type="button" title="Lipat / Perluas Penjelasan">▴</button>
     </div>
-    <h3 id="toast-title">Router Jaringan</h3>
+    <h3 id="toast-title">📡 Router Jaringan</h3>
     <div id="toast-content-wrap" class="toast-content-wrap">
       <p id="toast-body">
-        Router menghubungkan dua atau lebih jaringan yang berbeda dan mengatur jalur pengiriman paket data (IP). Perhatikan Port WAN (Biru) ke ISP dan Port LAN (Kuning) ke jaringan lokal.
+        Router menghubungkan dua atau lebih jaringan yang berbeda dan mengatur jalur pengiriman paket data (IP).
       </p>
       <div class="toast-tip" id="toast-tip">
         👆 Tap bagian objek 3D di layar untuk interaksi, atau tekan <strong>TANGKAP</strong>!
@@ -115,49 +117,87 @@
   </div>
 
   <!-- =========================================================================
-       7. HUD BAWAH (PILIH OBJEK DI RADAR, TOMBOL INTERAKSI & LEMPAR NET-BALL)
+       7. HUD BAWAH (INTERAKSI SPESIAL, NAVIGASI 10 KARAKTER, & TOMBOL NET-BALL)
        ========================================================================= -->
   <footer id="hud-bottom" class="hud-bottom hidden">
-    <!-- Tombol Interaksi Spesial sesuai Objek yang Sedang Muncul -->
-    <div class="special-actions" id="special-actions">
-      <!-- Diisi dinamis oleh script.js (misal: Uji WAN/LAN, Explode UTP, Simulasi Kabel Putus / Switch Rusak) -->
-    </div>
+    <!-- Tombol Interaksi Spesial sesuai Karakter yang Sedang Muncul -->
+    <div class="special-actions" id="special-actions"></div>
 
-    <!-- Bar Utama: Selector Objek + Tombol Lempar Net-Ball (Tengah seperti Pokeball) -->
+    <!-- Bar Utama: Tombol Prev/Next + Net-Ball + Galeri Koleksi -->
     <div class="action-dock">
-      <div class="target-selector">
-        <button class="target-chip active" data-target="router" type="button">
-          <span class="chip-check" id="check-router"></span>
-          📡 Router
-        </button>
-        <button class="target-chip" data-target="switch" type="button">
-          <span class="chip-check" id="check-switch"></span>
-          🔀 Switch
-        </button>
+      <button id="btn-prev-char" class="nav-char-btn" type="button" title="Karakter Sebelumnya">◀</button>
+
+      <div class="current-char-pill" id="btn-quick-roster" title="Tap untuk memilih dari daftar 10 karakter">
+        <span class="char-pill-emoji" id="dock-char-emoji">📡</span>
+        <div class="char-pill-info">
+          <strong id="dock-char-name">Router</strong>
+          <small id="dock-char-index">1 / 10</small>
+        </div>
       </div>
 
       <!-- Tombol Utama Lempar Net-Ball (Ala Pokéball) -->
-      <button id="btn-throw-ball" class="netball-btn" type="button" title="Lempar Net-Ball untuk Menangkap Objek!">
-        <span class="netball-top"></span>
+      <button id="btn-throw-ball" class="netball-btn" type="button" title="Lempar Net-Ball untuk Menangkap Karakter!">
         <span class="netball-core"></span>
         <span class="netball-label">TANGKAP</span>
       </button>
 
-      <div class="target-selector">
-        <button class="target-chip" data-target="utp" type="button">
-          <span class="chip-check" id="check-utp"></span>
-          🔌 UTP
-        </button>
-        <button class="target-chip" data-target="star" type="button">
-          <span class="chip-check" id="check-star"></span>
-          ⭐ Star
-        </button>
-      </div>
+      <button id="btn-open-collection-dock" class="dock-dex-btn" type="button" title="Lihat Galeri Koleksi Karakter">
+        <span>🏆</span>
+        <small>Koleksi</small>
+      </button>
+
+      <button id="btn-next-char" class="nav-char-btn" type="button" title="Karakter Berikutnya">▶</button>
     </div>
+
+    <!-- Strip Cepat Pilihan 10 Karakter (Bisa di-scroll horizontal di HP) -->
+    <div class="character-strip" id="character-strip"></div>
   </footer>
 
   <!-- =========================================================================
-       8. MODAL KUIS TANGKAP (MUNCUL SAAT NET-BALL MENGENAI OBJEK!)
+       8. MODAL GALERI KOLEKSI KARAKTER ("NET-DEX" ALA POKEDEX)
+       ========================================================================= -->
+  <div id="collection-modal" class="modal-backdrop hidden">
+    <div class="collection-card">
+      <div class="collection-header">
+        <div>
+          <span class="drawer-badge">NET-DEX • GALERI KOLEKSI</span>
+          <h3>🏆 Koleksi Karakter Jaringan</h3>
+        </div>
+        <button id="btn-close-collection" class="btn-close" type="button">&times;</button>
+      </div>
+
+      <!-- Progress Bar & Rank -->
+      <div class="collection-summary">
+        <div class="summary-top">
+          <span id="col-progress-text">0 / 10 Karakter Tertangkap (0%)</span>
+          <span class="rank-pill" id="col-rank-badge">Pemula Jaringan</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="col-progress-fill" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Filter Kategori Koleksi -->
+      <div class="collection-filters" id="collection-filters">
+        <button class="filter-chip active" data-filter="all" type="button">Semua (10)</button>
+        <button class="filter-chip" data-filter="perangkat" type="button">Perangkat</button>
+        <button class="filter-chip" data-filter="media" type="button">Media</button>
+        <button class="filter-chip" data-filter="topologi" type="button">Topologi</button>
+        <button class="filter-chip" data-filter="keamanan" type="button">Keamanan</button>
+      </div>
+
+      <!-- Grid Daftar Karakter (Diisi dinamis oleh script.js) -->
+      <div class="collection-grid" id="collection-grid"></div>
+
+      <div class="collection-footer">
+        <small>Progress tersimpan otomatis di perangkat ini.</small>
+        <button id="btn-reset-collection" class="btn-reset-small" type="button">Reset Koleksi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       9. MODAL KUIS TANGKAP (MUNCUL SAAT NET-BALL MENGENAI KARAKTER!)
        ========================================================================= -->
   <div id="quiz-modal" class="modal-backdrop hidden">
     <div class="quiz-card">
@@ -165,7 +205,7 @@
         <span class="quiz-badge" id="quiz-badge">⚡ TANTANGAN TANGKAP</span>
         <button id="btn-close-quiz" class="btn-close" type="button">&times;</button>
       </div>
-      <h3 id="quiz-title">Objek Terkunci di Dalam Net-Ball!</h3>
+      <h3 id="quiz-title">Karakter Terkunci di Dalam Net-Ball!</h3>
       <p class="quiz-question" id="quiz-question">Pertanyaan kuis muncul di sini...</p>
       <div class="quiz-options" id="quiz-options"></div>
       <div class="quiz-feedback hidden" id="quiz-feedback"></div>
@@ -173,28 +213,28 @@
   </div>
 
   <!-- =========================================================================
-       9. PANEL MATERI / INFO EDUKASI (KELAS X TJKT / TKJ — BUKA-TUTUP)
+       10. PANEL MATERI LENGKAP (KELAS X TJKT / TKJ — BUKA-TUTUP)
        ========================================================================= -->
   <aside id="materi-drawer" class="materi-drawer" aria-hidden="true">
     <div class="drawer-header">
       <div>
         <span class="drawer-badge">MATERI KELAS X TJKT / TKJ</span>
-        <h2>Dasar Jaringan &amp; Topologi</h2>
+        <h2>Ensiklopedia Jaringan Dasar</h2>
       </div>
       <button id="btn-close-materi" class="btn-close" type="button">&times;</button>
     </div>
 
     <div class="topic-tabs">
       <button class="tab-btn active" data-topic="topik1" type="button">
-        Topik 1: Perangkat Keras
+        Perangkat &amp; Media
       </button>
       <button class="tab-btn" data-topic="topik2" type="button">
-        Topik 2: Topologi Star
+        Topologi &amp; Keamanan
       </button>
     </div>
 
     <div class="drawer-body">
-      <!-- TOPIK 1 -->
+      <!-- TOPIK 1: PERANGKAT KERAS & MEDIA TRANSMISI -->
       <section class="topic-content active" id="topic-topik1">
         <article class="materi-card">
           <span class="tag tag-blue">1. ROUTER</span>
@@ -220,32 +260,75 @@
         </article>
 
         <article class="materi-card">
-          <span class="tag tag-amber">3. KABEL UTP &amp; KONEKTOR RJ-45</span>
+          <span class="tag tag-blue">3. ACCESS POINT (WI-FI)</span>
+          <h3>Pemancar Jaringan Nirkabel (WLAN)</h3>
+          <p>
+            <strong>Access Point</strong> memancarkan sinyal gelombang radio Wi-Fi (2.4 GHz / 5 GHz) agar smartphone dan laptop dapat terhubung ke jaringan lokal (LAN) tanpa kabel.
+          </p>
+        </article>
+
+        <article class="materi-card">
+          <span class="tag tag-purple">4. SERVER &amp; RACK</span>
+          <h3>Penyedia Layanan Jaringan</h3>
+          <p>
+            <strong>Server</strong> adalah komputer berperforma tinggi yang menyediakan layanan bagi perangkat klien, seperti <strong>Web Server</strong>, <strong>DNS</strong>, <strong>DHCP</strong> (pemberi IP otomatis), dan penyimpanan data terpusat.
+          </p>
+        </article>
+
+        <article class="materi-card">
+          <span class="tag tag-amber">5. KABEL UTP &amp; KONEKTOR RJ-45</span>
           <h3>Media Transmisi Tembaga Terpilin</h3>
           <p>
-            <strong>Kabel UTP (Unshielded Twisted Pair)</strong> adalah media transmisi kabel tembaga 4 pasang (8 kabel) berpasangan terpilin untuk menghubungkan perangkat jaringan lokal, dengan ujung <strong>Konektor RJ-45</strong> (8 pin emas).
+            <strong>Kabel UTP (Unshielded Twisted Pair)</strong> adalah media transmisi kabel tembaga 4 pasang (8 utas) berpasangan terpilin untuk mengurangi interferensi, dengan ujung konektor <strong>RJ-45</strong>.
+          </p>
+        </article>
+
+        <article class="materi-card">
+          <span class="tag tag-green">6. KABEL FIBER OPTIC</span>
+          <h3>Transmisi Cahaya Kecepatan Tinggi</h3>
+          <p>
+            <strong>Fiber Optic</strong> menggunakan serat kaca/plastik ultra-halus yang mentransmisikan data dalam bentuk <strong>pulsa cahaya</strong>. Jarak jangkauannya sangat jauh (kilometer) dan kebal terhadap gangguan elektromagnetik.
           </p>
         </article>
       </section>
 
-      <!-- TOPIK 2 -->
+      <!-- TOPIK 2: TOPOLOGI JARINGAN & KEAMANAN -->
       <section class="topic-content" id="topic-topik2">
         <article class="materi-card">
-          <span class="tag tag-purple">KONSEP TOPOLOGI STAR (BINTANG)</span>
-          <h3>Jaringan Terpusat di Satu Perangkat</h3>
+          <span class="tag tag-purple">1. TOPOLOGI STAR (BINTANG)</span>
+          <h3>Terpusat di Satu Switch / Hub</h3>
           <p>
-            Seluruh perangkat klien (<strong>PC, Laptop, Printer</strong>) terhubung secara terpusat ke <strong>satu perangkat penghubung utama</strong> (biasanya <strong>Switch</strong> atau Hub).
+            Seluruh perangkat (PC, Laptop, Printer) terhubung terpusat ke satu <strong>Switch/Hub</strong>.
+          </p>
+          <ul class="char-list">
+            <li><strong>✅ Mudah Dikelola:</strong> Gangguan cepat diidentifikasi karena tiap klien punya jalur sendiri.</li>
+            <li><strong>✅ Isolasi Kabel:</strong> Jika 1 kabel klien putus, klien lain <strong>tetap berkomunikasi normal</strong>.</li>
+            <li><strong>⚠️ Risiko Pusat:</strong> Jika perangkat pusat (Switch) rusak, <strong>seluruh jaringan terganggu</strong>.</li>
+          </ul>
+        </article>
+
+        <article class="materi-card">
+          <span class="tag tag-amber">2. TOPOLOGI BUS</span>
+          <h3>Satu Jalur Backbone + Terminator</h3>
+          <p>
+            Semua perangkat terhubung ke <strong>satu kabel utama (backbone)</strong> dengan <strong>Terminator</strong> di kedua ujung untuk menyerap sinyal agar tidak memantul. Hemat kabel, namun jika kabel utama putus maka seluruh jaringan lumpuh.
           </p>
         </article>
 
         <article class="materi-card">
-          <span class="tag tag-blue">KARAKTERISTIK TOPOLOGI STAR</span>
-          <h3>Kelebihan &amp; Kelemahan</h3>
-          <ul class="char-list">
-            <li><strong>✅ Mudah Dikelola &amp; Diidentifikasi:</strong> Jalur setiap klien terpisah sehingga mudah dicek saat terjadi gangguan.</li>
-            <li><strong>✅ Isolasi Kabel Putus:</strong> Jika <strong>satu kabel klien putus</strong>, klien lain <strong>tetap dapat berkomunikasi</strong> normal.</li>
-            <li><strong>⚠️ Ketergantungan pada Pusat:</strong> Jika <strong>perangkat pusat (Switch) bermasalah</strong>, maka <strong>seluruh jaringan terganggu</strong>.</li>
-          </ul>
+          <span class="tag tag-blue">3. TOPOLOGI RING (CINCIN)</span>
+          <h3>Jalur Melingkar Berbasis Token</h3>
+          <p>
+            Setiap komputer terhubung ke dua tetangganya membentuk lingkaran tertutup. Data mengalir satu arah menggunakan mekanisme <strong>Token</strong>, sehingga minim tabrakan data (*collision*), tetapi rentan jika satu segmen jalur terputus.
+          </p>
+        </article>
+
+        <article class="materi-card">
+          <span class="tag tag-green">4. FIREWALL (KEAMANAN JARINGAN)</span>
+          <h3>Perisai Penyaring Lalu Lintas Data</h3>
+          <p>
+            <strong>Firewall</strong> bertugas mengawasi dan menyaring paket data masuk maupun keluar berdasarkan aturan keamanan — meloloskan akses yang sah dan memblokir serangan siber / akses ilegal.
+          </p>
         </article>
       </section>
     </div>
