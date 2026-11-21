@@ -53,9 +53,9 @@
       </div>
 
       <div class="start-steps">
-        <div class="step-item"><span class="step-ico">📷</span><span>Kamera aktif → objek 3D &amp; penjelasan materi langsung muncul</span></div>
-        <div class="step-item"><span class="step-ico">🔍</span><span>Cubit 2 jari atau tombol <b>+ −</b> untuk zoom, geser untuk putar 360°</span></div>
-        <div class="step-item"><span class="step-ico">🏆</span><span>Lempar Net-Ball, jawab kuis singkat, &amp; koleksi 13/13 karakter!</span></div>
+        <div class="step-item"><span class="step-ico">📐</span><span>Arahkan kamera ke <b>lantai atau meja</b> untuk mendeteksi permukaan datar</span></div>
+        <div class="step-item"><span class="step-ico">🧭</span><span>Sensor <b>Gyroscope</b> otomatis mengikuti sudut HP agar objek 3D tetap stabil</span></div>
+        <div class="step-item"><span class="step-ico">🏆</span><span>Sentuh objek, atur zoom, lempar Net-Ball, &amp; koleksi 13/13 karakter!</span></div>
       </div>
 
       <button id="btn-start-ar" class="btn-primary-full" type="button">
@@ -124,14 +124,30 @@
   </section>
 
   <!-- =========================================================================
-       8. PANEL KONTROL SAMPING KANAN (ZOOM + / 1.0x / - & RECENTER)
+       7B. INDIKATOR DETEKSI PERMUKAAN LANTAI / MEJA (SURFACE SCANNER)
+       Muncul saat mode pindai lantai aktif sebelum objek 3D diletakkan stabil
        ========================================================================= -->
-  <div id="zoom-controls" class="side-tool-rail hidden" aria-label="Kontrol Ukuran dan Posisi Karakter 3D">
+  <div id="surface-scanner-bar" class="surface-scanner-bar hidden">
+    <div class="scanner-status-row">
+      <span class="scanner-dot" id="scanner-dot"></span>
+      <span id="scanner-text">📐 Arahkan kamera ke lantai atau meja datar...</span>
+    </div>
+    <button id="btn-place-surface" class="btn-place-surface" type="button" disabled>
+      📍 Letakkan 3D di Permukaan Ini
+    </button>
+  </div>
+
+  <!-- =========================================================================
+       8. PANEL KONTROL SAMPING KANAN (ZOOM, GYRO, PINDAH LANTAI, & RECENTER)
+       ========================================================================= -->
+  <div id="zoom-controls" class="side-tool-rail hidden" aria-label="Kontrol Ukuran, Gyro, dan Permukaan Karakter 3D">
     <button id="btn-zoom-in" class="rail-btn" type="button" title="Perbesar Karakter (+)">＋</button>
     <button id="zoom-level-text" class="rail-scale" type="button" title="Reset Ukuran ke 1.0x">1.0x</button>
     <button id="btn-zoom-out" class="rail-btn" type="button" title="Perkecil Karakter (-)">－</button>
     <div class="rail-divider"></div>
-    <button id="btn-recenter" class="rail-btn rail-btn-accent" type="button" title="Reset Posisi & Ukuran">🎯</button>
+    <button id="btn-toggle-gyro" class="rail-btn rail-btn-accent active" type="button" title="Aktif/Nonaktifkan Sensor Gyroscope">🧭</button>
+    <button id="btn-rescan-floor" class="rail-btn rail-btn-accent" type="button" title="Pindai Ulang Lantai / Pindahkan Lokasi 3D">📍</button>
+    <button id="btn-recenter" class="rail-btn rail-btn-accent" type="button" title="Tarik Objek ke Depan Kamera & Reset">🎯</button>
   </div>
 
   <!-- =========================================================================

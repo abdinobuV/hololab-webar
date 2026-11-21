@@ -354,11 +354,14 @@ document.addEventListener('DOMContentLoaded', () => {
     caughtSet: new Set(),
     xp: 0,
     collectionFilter: 'all',
-    targetRotX: 0.22,
-    targetRotY: 0.45,
+    targetRotX: 0,
+    targetRotY: 0.35,
     targetScale: 1.0,
-    gyroOffsetX: 0,
-    gyroOffsetY: 0,
+    // State True 3-DOF Gyroscope & Deteksi Permukaan Dasar (Lantai/Meja)
+    gyroEnabled: true,
+    gyroHasData: false,
+    surfaceMode: 'placed', // 'scanning' | 'placed'
+    surfaceReady: false,
     isDragging: false,
     pointerDownPos: { x: 0, y: 0 },
     prevPointer: { x: 0, y: 0 },
@@ -458,6 +461,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const zoomLevelText = document.getElementById('zoom-level-text');
   const btnZoomIn = document.getElementById('btn-zoom-in');
   const btnZoomOut = document.getElementById('btn-zoom-out');
+  const btnToggleGyro = document.getElementById('btn-toggle-gyro');
+  const btnRescanFloor = document.getElementById('btn-rescan-floor');
+  const surfaceScannerBar = document.getElementById('surface-scanner-bar');
+  const scannerDot = document.getElementById('scanner-dot');
+  const scannerText = document.getElementById('scanner-text');
+  const btnPlaceSurface = document.getElementById('btn-place-surface');
   const interactionToast = document.getElementById('interaction-toast');
   const toastContentWrap = document.getElementById('toast-content-wrap');
   const btnToggleLiveInfo = document.getElementById('btn-toggle-live-info');
@@ -493,11 +502,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let mediaStream = null;
 
   // ==========================================================================
-  // SETUP THREE.JS SCENE
+  // SETUP THREE.JS SCENE (WORLD-SPACE GROUND PLANE y = 0 + CONTACT SHADOW)
   // ==========================================================================
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 100);
-  camera.position.set(0, 0.45, 4.7);
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.08, 100);
+  // Default posisi kamera Studio / Non-Gyro menatap titik lantai (0, 0.55, 0)
+  camera.position.set(0, 1.45, 3.8);
+  camera.lookAt(0, 0.55, 0);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -506,31 +517,80 @@ document.addEventListener('DOMContentLoaded', () => {
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.88));
   const dirLight = new THREE.DirectionalLight(0xffffff, 1.15);
-  dirLight.position.set(4, 7, 5);
+  dirLight.position.set(4, 8, 5);
   scene.add(dirLight);
-  const accentLight = new THREE.PointLight(0x38bdf8, 1.2, 16);
-  accentLight.position.set(-4, 2, 3);
+  const accentLight = new THREE.PointLight(0x38bdf8, 1.2, 18);
+  accentLight.position.set(-4, 3, 3);
   scene.add(accentLight);
 
-  const studioGrid = new THREE.GridHelper(12, 20, 0x38bdf8, 0x1e293b);
-  studioGrid.position.y = -1.3;
+  // Bidang Lantai Virtual pada y = 0 untuk Raycast Deteksi Permukaan
+  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+  const studioGrid = new THREE.GridHelper(14, 24, 0x38bdf8, 0x1e293b);
+  studioGrid.position.y = 0;
   studioGrid.material.transparent = true;
   studioGrid.material.opacity = 0.35;
   scene.add(studioGrid);
 
+  // --- Surface Reticle 3D (Indikator Bidang Lantai / Meja saat Memindai) ---
+  const surfaceReticle = new THREE.Group();
+  const retOuter = new THREE.Mesh(
+    new THREE.RingGeometry(0.46, 0.54, 48),
+    new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+  );
+  retOuter.rotation.x = -Math.PI / 2;
+  const retInner = new THREE.Mesh(
+    new THREE.RingGeometry(0.14, 0.19, 32),
+    new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
+  );
+  retInner.rotation.x = -Math.PI / 2;
+  const retGrid = new THREE.GridHelper(1.2, 6, 0x22c55e, 0x22c55e);
+  retGrid.material.transparent = true;
+  retGrid.material.opacity = 0.32;
+  surfaceReticle.add(retOuter, retInner, retGrid);
+  surfaceReticle.position.set(0, 0.01, -2.5);
+  surfaceReticle.visible = false;
+  scene.add(surfaceReticle);
+
+  // --- Root Objek AR (Terkunci Stabil di Permukaan Lantai y = 0) ---
   const arObjectRoot = new THREE.Group();
   scene.add(arObjectRoot);
 
-  // Cincin target bercahaya di bawah karakter
+  // Bayangan Kontak Lembut di Lantai agar Objek Terlihat Menapak Kokoh
+  function createContactShadowMesh() {
+    const c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 256;
+    const ctx = c.getContext('2d');
+    const grad = ctx.createRadialGradient(128, 128, 14, 128, 128, 120);
+    grad.addColorStop(0, 'rgba(0, 0, 0, 0.62)');
+    grad.addColorStop(0.55, 'rgba(0, 0, 0, 0.28)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 256, 256);
+    const tex = new THREE.CanvasTexture(c);
+    const shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.6, 2.6),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 0.006;
+    return shadow;
+  }
+  arObjectRoot.add(createContactShadowMesh());
+
+  // Cincin target datar menempel di lantai
   const targetRing = new THREE.Mesh(
-    new THREE.RingGeometry(1.18, 1.27, 48),
-    new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.65 })
+    new THREE.RingGeometry(1.12, 1.21, 48),
+    new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.68 })
   );
   targetRing.rotation.x = -Math.PI / 2;
-  targetRing.position.y = -0.84;
+  targetRing.position.y = 0.015;
   arObjectRoot.add(targetRing);
 
+  // Dudukan Model 3D (terangkat y = 0.72 agar seluruh model menapak pas di atas bayangan lantai)
   const activeModelHolder = new THREE.Group();
+  activeModelHolder.position.y = 0.72;
   arObjectRoot.add(activeModelHolder);
 
   function makeLabelSprite(text, bgColor = 'rgba(15,23,42,0.88)', borderColor = '#38bdf8') {
@@ -2091,10 +2151,14 @@ document.addEventListener('DOMContentLoaded', () => {
     burstParticles.push({ mesh: pm, vel: new THREE.Vector3(), life: 0 });
   }
 
+  const ballStartPos = new THREE.Vector3();
+  const ballEndPos = new THREE.Vector3();
+
   function triggerBurstParticles() {
+    const center = arObjectRoot.position.clone().add(new THREE.Vector3(0, 0.72 * state.targetScale, 0));
     burstParticles.forEach((p) => {
       p.mesh.visible = true;
-      p.mesh.position.copy(arObjectRoot.position);
+      p.mesh.position.copy(center);
       p.vel.set((Math.random() - 0.5) * 0.16, (Math.random() - 0.5) * 0.16, (Math.random() - 0.5) * 0.16);
       p.life = 1.0;
     });
@@ -2102,6 +2166,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-throw-ball').addEventListener('click', () => {
     if (state.ballFlying || !quizModal.classList.contains('hidden')) return;
+    if (state.surfaceMode === 'scanning') {
+      showSnackbar('📐 Letakkan objek 3D di lantai/meja terlebih dahulu!');
+      return;
+    }
+    // Hitung titik awal lemparan tepat di depan-bawah arah pandang kamera saat ini
+    const camDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+    ballStartPos.copy(camera.position).addScaledVector(camDir, 0.85).addScaledVector(camUp, -0.35);
+    ballEndPos.copy(arObjectRoot.position).add(new THREE.Vector3(0, 0.72 * state.targetScale, 0));
+
     state.ballFlying = true;
     state.ballProgress = 0;
     netBallGroup.visible = true;
@@ -2200,15 +2274,168 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function enableGyroscope() {
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-      DeviceOrientationEvent.requestPermission().catch(() => {});
+  // ==========================================================================
+  // TRUE 3-DOF GYROSCOPE CAMERA + STABILISASI ANTI-JITTER + DETEKSI LANTAI
+  // ==========================================================================
+  const gyroZee = new THREE.Vector3(0, 0, 1);
+  const gyroEuler = new THREE.Euler();
+  const gyroQ0 = new THREE.Quaternion();
+  const gyroQ1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // -PI/2 sumbu X (kamera belakang)
+  const rawDeviceQuat = new THREE.Quaternion();
+  const targetCameraQuat = new THREE.Quaternion();
+  const smoothedCameraQuat = new THREE.Quaternion();
+  let gyroYawOffsetRad = null;
+  let gyroListenerBound = false;
+  let gyroFallbackTimer = null;
+
+  function getScreenOrientationDeg() {
+    if (window.screen && window.screen.orientation && typeof window.screen.orientation.angle === 'number') {
+      return window.screen.orientation.angle;
     }
-    window.addEventListener('deviceorientation', (e) => {
-      if (e.gamma === null || e.beta === null) return;
-      state.gyroOffsetX = Math.max(-0.55, Math.min(0.55, (e.gamma / 45) * 0.45));
-      state.gyroOffsetY = Math.max(-0.4, Math.min(0.4, ((e.beta - 60) / 45) * 0.35));
-    });
+    return typeof window.orientation === 'number' ? window.orientation : 0;
+  }
+
+  function updateGyroQuaternion(alphaDeg, betaDeg, gammaDeg) {
+    const alpha = THREE.MathUtils.degToRad(alphaDeg || 0);
+    const beta = THREE.MathUtils.degToRad(betaDeg || 0);
+    const gamma = THREE.MathUtils.degToRad(gammaDeg || 0);
+    const orient = THREE.MathUtils.degToRad(getScreenOrientationDeg());
+
+    if (gyroYawOffsetRad === null) {
+      gyroYawOffsetRad = alpha;
+    }
+
+    // Kurangi yaw awal agar saat mulai kamera langsung menghadap sumbu -Z (depan)
+    const relativeAlpha = alpha - gyroYawOffsetRad;
+    gyroEuler.set(beta, relativeAlpha, -gamma, 'YXZ');
+    rawDeviceQuat.setFromEuler(gyroEuler);
+    rawDeviceQuat.multiply(gyroQ1);
+    rawDeviceQuat.multiply(gyroQ0.setFromAxisAngle(gyroZee, -orient));
+    targetCameraQuat.copy(rawDeviceQuat);
+  }
+
+  async function enableGyroscope() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const res = await DeviceOrientationEvent.requestPermission();
+        if (res !== 'granted') {
+          state.gyroEnabled = false;
+          btnToggleGyro.classList.remove('active');
+          showSnackbar('ℹ️ Izin Gyro ditolak, menggunakan mode lantai virtual stabil');
+          return;
+        }
+      } catch (_) {}
+    }
+
+    if (!gyroListenerBound) {
+      gyroListenerBound = true;
+      window.addEventListener('deviceorientation', (e) => {
+        if (e.alpha === null && e.beta === null && e.gamma === null) return;
+        const firstSignal = !state.gyroHasData;
+        state.gyroHasData = true;
+        updateGyroQuaternion(e.alpha, e.beta, e.gamma);
+
+        if (firstSignal && state.cameraActive && state.gyroEnabled) {
+          camera.position.set(0, 1.45, 0);
+          smoothedCameraQuat.copy(targetCameraQuat);
+          camera.quaternion.copy(smoothedCameraQuat);
+          clearTimeout(gyroFallbackTimer);
+          showSnackbar('🧭 Gyroscope 3-DOF Aktif! Arahkan ke lantai/meja');
+        }
+      });
+    }
+
+    // Jika dalam 1.5 detik tidak ada data gyro (misal Laptop / HP tanpa giroskop),
+    // aktifkan mode lantai virtual stabil agar tetap mudah meletakkan 3D!
+    clearTimeout(gyroFallbackTimer);
+    gyroFallbackTimer = setTimeout(() => {
+      if (!state.gyroHasData && state.cameraActive) {
+        camera.position.set(0, 1.45, 3.8);
+        camera.lookAt(0, 0.45, 0);
+        if (state.surfaceMode === 'scanning') {
+          setSurfaceReadyUI(true, '✅ Permukaan Meja/Lantai Siap! Tap atau tekan tombol di bawah');
+          surfaceReticle.position.set(0, 0.01, 0);
+          retOuter.material.color.setHex(0x22c55e);
+          retInner.material.color.setHex(0x22c55e);
+        }
+      }
+    }, 1500);
+  }
+
+  function setSurfaceReadyUI(ready, message) {
+    state.surfaceReady = ready;
+    if (scannerDot) scannerDot.classList.toggle('ready', ready);
+    if (scannerText && message) scannerText.textContent = message;
+    if (btnPlaceSurface) btnPlaceSurface.disabled = !ready;
+  }
+
+  function startSurfaceScan() {
+    state.surfaceMode = 'scanning';
+    state.surfaceReady = false;
+    arObjectRoot.visible = false;
+    surfaceReticle.visible = true;
+    surfaceScannerBar.classList.remove('hidden');
+
+    if (state.cameraActive && state.gyroHasData && state.gyroEnabled) {
+      camera.position.set(0, 1.45, 0);
+      setSurfaceReadyUI(false, '📐 Arahkan kamera miring ke bawah ke lantai atau meja...');
+    } else {
+      camera.position.set(0, 1.45, 3.8);
+      camera.lookAt(0, 0.45, 0);
+      surfaceReticle.position.set(0, 0.01, 0);
+      retOuter.material.color.setHex(0x22c55e);
+      retInner.material.color.setHex(0x22c55e);
+      setSurfaceReadyUI(true, '✅ Permukaan Dasar Terdeteksi! Tap untuk meletakkan 3D');
+    }
+  }
+
+  function placeObjectOnSurface(worldPos) {
+    arObjectRoot.position.set(worldPos.x, 0, worldPos.z);
+    arObjectRoot.visible = true;
+    surfaceReticle.visible = false;
+    surfaceScannerBar.classList.add('hidden');
+    state.surfaceMode = 'placed';
+
+    // Hadapkan objek secara tegak lurus stabil menghadap kamera pada bidang horizontal
+    const dx = camera.position.x - arObjectRoot.position.x;
+    const dz = camera.position.z - arObjectRoot.position.z;
+    state.targetRotY = Math.atan2(dx, dz);
+    state.targetRotX = 0;
+
+    arObjectRoot.scale.setScalar(0.15);
+    state.wobbleTimer = 0.45;
+    sfx.tap();
+    showSnackbar('📍 Objek 3D terkunci stabil di permukaan lantai!');
+  }
+
+  function recenterObjectInFront() {
+    setZoomScale(1.0);
+    state.targetRotX = 0;
+
+    if (state.cameraActive && state.gyroHasData && state.gyroEnabled) {
+      // Hitung titik lantai tepat 2.8m di depan arah pandang horizontal kamera saat ini
+      const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+      fwd.y = 0;
+      if (fwd.lengthSq() < 0.001) fwd.set(0, 0, -1);
+      fwd.normalize();
+      const targetPt = new THREE.Vector3(
+        camera.position.x + fwd.x * 2.8,
+        0,
+        camera.position.z + fwd.z * 2.8
+      );
+      placeObjectOnSurface(targetPt);
+    } else {
+      camera.position.set(0, 1.45, 3.8);
+      camera.lookAt(0, 0.55, 0);
+      arObjectRoot.position.set(0, 0, 0);
+      state.targetRotY = 0.35;
+      arObjectRoot.visible = true;
+      surfaceReticle.visible = false;
+      surfaceScannerBar.classList.add('hidden');
+      state.surfaceMode = 'placed';
+    }
+    showSnackbar('🎯 Objek dipusatkan stabil di depan kamera (1.0x)');
+    sfx.tap();
   }
 
   // ==========================================================================
@@ -2223,7 +2450,7 @@ document.addEventListener('DOMContentLoaded', () => {
     snackbarEl.textContent = message;
     snackbarEl.classList.remove('hidden');
     clearTimeout(snackbarTimer);
-    snackbarTimer = setTimeout(() => snackbarEl.classList.add('hidden'), 1800);
+    snackbarTimer = setTimeout(() => snackbarEl.classList.add('hidden'), 2000);
   }
 
   function setZoomScale(newScale, announce = false) {
@@ -2251,6 +2478,39 @@ document.addEventListener('DOMContentLoaded', () => {
     sfx.tap();
   });
 
+  btnPlaceSurface.addEventListener('click', () => {
+    if (state.surfaceReady) {
+      placeObjectOnSurface(surfaceReticle.position);
+    }
+  });
+
+  btnRescanFloor.addEventListener('click', () => {
+    if (!state.cameraActive) {
+      showSnackbar('ℹ️ Mode Studio 3D: objek sudah menapak di lantai');
+      return;
+    }
+    startSurfaceScan();
+    sfx.tap();
+    showSnackbar('📐 Pindai ulang permukaan lantai/meja...');
+  });
+
+  btnToggleGyro.addEventListener('click', () => {
+    state.gyroEnabled = !state.gyroEnabled;
+    btnToggleGyro.classList.toggle('active', state.gyroEnabled);
+
+    if (state.gyroEnabled && state.gyroHasData && state.cameraActive) {
+      camera.position.set(0, 1.45, 0);
+      gyroYawOffsetRad = null; // Kalibrasi ulang arah depan
+      showSnackbar('🧭 Gyroscope ON: Kamera mengikuti sudut HP');
+    } else {
+      camera.position.set(0, 1.45, 3.8);
+      camera.lookAt(0, 0.55, 0);
+      arObjectRoot.position.set(0, 0, 0);
+      showSnackbar('🔒 Gyroscope OFF: Mode Kamera Terkunci Stabil');
+    }
+    sfx.tap();
+  });
+
   async function enterExperience(useCamera) {
     sfx.ensure();
     startScreen.classList.add('hidden');
@@ -2260,15 +2520,22 @@ document.addEventListener('DOMContentLoaded', () => {
     interactionToast.classList.remove('hidden');
     state.started = true;
 
+    updateNetDexHUD();
+    await spawnCharacter('router');
+
     if (useCamera) {
       await startCamera('environment');
-      enableGyroscope();
+      await enableGyroscope();
+      // Mulai dengan pemindaian permukaan dasar lantai/meja agar 3D muncul di atas permukaan & stabil!
+      startSurfaceScan();
     } else {
       studioGrid.visible = true;
+      camera.position.set(0, 1.45, 3.8);
+      camera.lookAt(0, 0.55, 0);
+      arObjectRoot.position.set(0, 0, 0);
+      arObjectRoot.visible = true;
+      state.surfaceMode = 'placed';
     }
-
-    updateNetDexHUD();
-    spawnCharacter('router');
   }
 
   document.getElementById('btn-start-ar').addEventListener('click', () => enterExperience(true));
@@ -2281,16 +2548,9 @@ document.addEventListener('DOMContentLoaded', () => {
     sfx.tap();
   });
 
-  document.getElementById('btn-recenter').addEventListener('click', () => {
-    state.targetRotX = 0.22;
-    state.targetRotY = 0.45;
-    setZoomScale(1.0);
-    state.wobbleTimer = 0.35;
-    showSnackbar('🎯 Posisi & ukuran direset (1.0x)');
-    sfx.tap();
-  });
+  document.getElementById('btn-recenter').addEventListener('click', recenterObjectInFront);
 
-  // Multi-Touch Pinch-to-Zoom (2 Jari) + Drag Putar (1 Jari) + Tap Raycasting
+  // Multi-Touch Pinch-to-Zoom (2 Jari) + Drag Putar (1 Jari) + Tap Raycasting / Place Surface
   const activePointers = new Map();
   let initialPinchDist = null;
   let initialPinchScale = 1.0;
@@ -2306,7 +2566,6 @@ document.addEventListener('DOMContentLoaded', () => {
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (activePointers.size === 2) {
-      // Mulai gestur cubit / rentang 2 jari (Pinch-to-Zoom)
       state.isDragging = false;
       didPinchGesture = true;
       initialPinchDist = getPinchDistance();
@@ -2332,11 +2591,14 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (state.isDragging && activePointers.size === 1) {
+    if (state.isDragging && activePointers.size === 1 && state.surfaceMode === 'placed') {
       const dx = e.clientX - state.prevPointer.x;
       const dy = e.clientY - state.prevPointer.y;
       state.targetRotY += dx * 0.01;
-      state.targetRotX = Math.max(-1.0, Math.min(1.1, state.targetRotX + dy * 0.008));
+      // Pada mode lantai stabil, batasi kemiringan X agar tetap tegak di atas permukaan
+      if (!state.cameraActive || !state.gyroHasData) {
+        state.targetRotX = Math.max(-0.45, Math.min(0.65, state.targetRotX + dy * 0.006));
+      }
       state.prevPointer = { x: e.clientX, y: e.clientY };
     }
   });
@@ -2355,6 +2617,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (wasDragging && !didPinchGesture && state.started) {
         const moved = Math.hypot(e.clientX - state.pointerDownPos.x, e.clientY - state.pointerDownPos.y);
         if (moved < 12) {
+          // Jika sedang memindai permukaan & reticle hijau siap -> Tap layar langsung meletakkan 3D!
+          if (state.surfaceMode === 'scanning') {
+            if (state.surfaceReady) {
+              placeObjectOnSurface(surfaceReticle.position);
+            } else {
+              showSnackbar('📐 Miringkan HP ke bawah menghadap lantai/meja');
+            }
+            return;
+          }
+
           tapCoords.x = (e.clientX / window.innerWidth) * 2 - 1;
           tapCoords.y = -(e.clientY / window.innerHeight) * 2 + 1;
           raycaster.setFromCamera(tapCoords, camera);
@@ -2400,7 +2672,6 @@ document.addEventListener('DOMContentLoaded', () => {
     drawerBackdrop.addEventListener('click', () => setDrawerOpen(false));
   }
 
-  // Tutup modal jika klik di luar kartu modal
   collectionModal.addEventListener('click', (e) => {
     if (e.target === collectionModal) collectionModal.classList.add('hidden');
   });
@@ -2408,7 +2679,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === quizModal) quizModal.classList.add('hidden');
   });
 
-  // Tutup semua overlay dengan tombol Escape (untuk PC/Laptop)
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       collectionModal.classList.add('hidden');
@@ -2428,52 +2698,115 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ==========================================================================
-  // RENDER & ANIMATION LOOP UTAMA
+  // RENDER & ANIMATION LOOP UTAMA (GYRO STABIL + SURFACE RETICLE + 3D LOCKED)
   // ==========================================================================
   const clock = new THREE.Clock();
+  const centerRay = new THREE.Raycaster();
+  const centerNdc = new THREE.Vector2(0, 0);
+  const floorHitPoint = new THREE.Vector3();
+  const camForward = new THREE.Vector3();
 
   function animate() {
     requestAnimationFrame(animate);
     const dt = Math.min(clock.getDelta(), 0.05);
     const t = clock.getElapsedTime();
 
-    if (!state.isDragging) state.targetRotY += dt * 0.24;
+    // 1. Update Kamera 3-DOF dari Gyroscope dengan Deadzone Anti-Jitter + Adaptive SLERP
+    if (state.cameraActive && state.gyroHasData && state.gyroEnabled) {
+      const angleDiff = smoothedCameraQuat.angleTo(targetCameraQuat);
+      if (angleDiff > 0.0045) {
+        // Getaran kecil dihaluskan kuat (0.09), gerakan putar cepat direspons mulus (0.26)
+        const slerpFactor = THREE.MathUtils.clamp(angleDiff * 1.35, 0.09, 0.26);
+        smoothedCameraQuat.slerp(targetCameraQuat, slerpFactor);
+      }
+      camera.quaternion.copy(smoothedCameraQuat);
+    }
 
-    const floatY = -0.1 + Math.sin(t * 2.1) * 0.07;
-    arObjectRoot.position.x += (-state.gyroOffsetX - arObjectRoot.position.x) * 0.1;
-    arObjectRoot.position.y += (floatY - state.gyroOffsetY - arObjectRoot.position.y) * 0.1;
+    // 2. Mode Pemindaian Permukaan Dasar (Lantai / Meja)
+    if (state.surfaceMode === 'scanning' && state.started) {
+      if (state.cameraActive && state.gyroHasData && state.gyroEnabled) {
+        camera.getWorldDirection(camForward);
+        centerRay.setFromCamera(centerNdc, camera);
+        const hit = centerRay.ray.intersectPlane(groundPlane, floorHitPoint);
+
+        if (hit && camForward.y < -0.14) {
+          const dist = Math.hypot(floorHitPoint.x - camera.position.x, floorHitPoint.z - camera.position.z);
+          if (dist >= 1.0 && dist <= 6.0) {
+            surfaceReticle.position.x += (floorHitPoint.x - surfaceReticle.position.x) * 0.2;
+            surfaceReticle.position.z += (floorHitPoint.z - surfaceReticle.position.z) * 0.2;
+            surfaceReticle.position.y = 0.01;
+            retOuter.material.color.setHex(0x22c55e);
+            retInner.material.color.setHex(0x22c55e);
+            retGrid.visible = true;
+            if (!state.surfaceReady) {
+              setSurfaceReadyUI(true, '✅ Permukaan Lantai/Meja Terdeteksi! Tap untuk Letakkan 3D');
+            }
+          } else {
+            retOuter.material.color.setHex(0xf59e0b);
+            retInner.material.color.setHex(0xf59e0b);
+            retGrid.visible = false;
+            if (state.surfaceReady) {
+              setSurfaceReadyUI(false, '📐 Dekatkan / miringkan sedikit ke permukaan lantai...');
+            }
+          }
+        } else {
+          // Belum menghadap lantai -> posisikan reticle redup di depan bawah agar tetap terlihat
+          const approxX = camera.position.x + camForward.x * 2.5;
+          const approxZ = camera.position.z + camForward.z * 2.5;
+          surfaceReticle.position.x += (approxX - surfaceReticle.position.x) * 0.12;
+          surfaceReticle.position.z += (approxZ - surfaceReticle.position.z) * 0.12;
+          surfaceReticle.position.y = 0.01;
+          retOuter.material.color.setHex(0xf59e0b);
+          retInner.material.color.setHex(0xf59e0b);
+          retGrid.visible = false;
+          if (state.surfaceReady) {
+            setSurfaceReadyUI(false, '📐 Arahkan kamera miring ke bawah ke lantai atau meja...');
+          }
+        }
+      }
+      // Animasi denyut halus reticle lantai
+      const rPulse = 1 + Math.sin(t * 4) * 0.05;
+      retOuter.scale.setScalar(rPulse);
+      retInner.rotation.z = t * 1.4;
+    }
+
+    // 3. Objek 3D Terkunci Stabil Menapak di Lantai (y = 0, tanpa goyang melayang)
+    if (!state.isDragging && state.surfaceMode === 'placed') {
+      state.targetRotY += dt * 0.18;
+    }
 
     let wobbleScale = 1.0;
     if (state.wobbleTimer > 0) {
       state.wobbleTimer = Math.max(0, state.wobbleTimer - dt);
-      wobbleScale = 1 + Math.sin(state.wobbleTimer * 28) * 0.12;
+      wobbleScale = 1 + Math.sin(state.wobbleTimer * 28) * 0.1;
     }
 
     const curS = arObjectRoot.scale.x;
     const goalS = state.targetScale * wobbleScale;
     arObjectRoot.scale.setScalar(curS + (goalS - curS) * 0.14);
 
+    // Putaran objek tetap halus di tempat tanpa bergeser dari lantai
     arObjectRoot.rotation.x += (state.targetRotX - arObjectRoot.rotation.x) * 0.12;
     arObjectRoot.rotation.y += (state.targetRotY - arObjectRoot.rotation.y) * 0.12;
-    targetRing.rotation.z = t * 0.8;
+    targetRing.rotation.z = t * 0.6;
 
-    if (currentAnimFn) currentAnimFn(t, dt);
+    if (currentAnimFn && state.surfaceMode === 'placed') {
+      currentAnimFn(t, dt);
+    }
 
+    // 4. Animasi Lempar Net-Ball 3D di World-Space (akurat dari sudut gyro mana pun)
     if (state.ballFlying) {
       state.ballProgress += dt * 2.1;
       const p = Math.min(1, state.ballProgress);
-      netBallGroup.position.set(
-        arObjectRoot.position.x * p,
-        -1.35 * (1 - p) + arObjectRoot.position.y * p + Math.sin(p * Math.PI) * 1.35,
-        3.6 + (arObjectRoot.position.z + 0.1 - 3.6) * p
-      );
+      netBallGroup.position.lerpVectors(ballStartPos, ballEndPos, p);
+      netBallGroup.position.y += Math.sin(p * Math.PI) * 1.1;
       netBallGroup.rotation.x -= dt * 14;
-      netBallGroup.scale.setScalar(1.0 - p * 0.35);
+      netBallGroup.scale.setScalar(1.0 - p * 0.3);
 
       if (p >= 1) {
         state.ballFlying = false;
         netBallGroup.visible = false;
-        state.wobbleTimer = 0.6;
+        state.wobbleTimer = 0.55;
         sfx.hit();
         triggerBurstParticles();
         flashOverlay.classList.add('flash');
@@ -2482,6 +2815,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // 5. Partikel Ledakan Tangkap
     burstParticles.forEach((p) => {
       if (p.life > 0) {
         p.mesh.position.add(p.vel);
