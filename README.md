@@ -24,4 +24,5 @@ Aplikasi game edukasi berbasis **WebAR** ala **Pokémon GO** untuk siswa **Kelas
 12. 🔀 **Topologi Hybrid** *(Legendary)* — Gabungan Topologi Star + Ring lewat Router penghubung
 
 ### Keamanan Jaringan (1)
-13. 🛡️ **Firewall Shield** *(Legendary)* — Perisai penyaring paket Hijau (Lolos) vs Merah (Serangan Diblokir!)
+13. 🛡️ **Firewall Shield** *(Legendary)* — Perisai penyaring paket Hijau (Lolos) vs Merah (Serangan Diblokir
+Thank You To @abdinobuV 
